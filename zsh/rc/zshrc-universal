@@ -1,0 +1,107 @@
+# ============================================================================
+# Universal .zshrc - Compatible with macOS, Linux, and WSL
+# ============================================================================
+# Installation:
+#   1. Copy this file to your home directory: cp zshrc-universal ~/.zshrc
+#   2. Copy the zsh/ directory to ~/.config/: cp -r zsh ~/.config/
+#   3. Restart your terminal or run: source ~/.zshrc
+#
+# This configuration automatically detects your operating system and loads
+# the appropriate settings for macOS, Linux, or WSL.
+# ============================================================================
+
+# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# ============================================================================
+# Module Loading System
+# ============================================================================
+# Configuration modules location
+export ZSH_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
+
+# Function to safely source configuration files
+source_if_exists() {
+    [[ -f "$1" ]] && source "$1"
+}
+
+# Load configuration modules in order
+# Each module is responsible for a specific aspect of the configuration
+source_if_exists "$ZSH_CONFIG_DIR/00-detect-env.zsh"    # OS and environment detection
+source_if_exists "$ZSH_CONFIG_DIR/01-path.zsh"          # PATH configuration
+source_if_exists "$ZSH_CONFIG_DIR/02-asdf.zsh"          # asdf version manager
+source_if_exists "$ZSH_CONFIG_DIR/03-common.zsh"        # Common settings
+source_if_exists "$ZSH_CONFIG_DIR/04-aliases.zsh"       # Aliases
+source_if_exists "$ZSH_CONFIG_DIR/05-completions.zsh"   # Completions and performance
+
+# ============================================================================
+# Oh-My-Zsh Configuration
+# ============================================================================
+export ZSH="$HOME/.oh-my-zsh"
+
+# Theme configuration
+if [[ -f "$ZSH/themes/rogerio.zsh-theme" ]]; then
+    ZSH_THEME="rogerio"
+else
+    ZSH_THEME="robbyrussell"
+fi
+
+# Update settings
+export UPDATE_ZSH_DAYS=13
+
+# History settings
+HIST_STAMPS="mm/dd/yyyy"
+export HISTSIZE=2000000
+export SAVEHIST=2000000
+
+# Plugins
+plugins=(
+    git
+    terraform
+    knife
+    aws
+    ansible
+    zsh-autosuggestions
+    zsh-syntax-highlighting
+    kubectx
+    emotty
+    emoji
+    zsh-history-substring-search
+)
+
+# Plugin settings
+ZSH_AUTOSUGGEST_STRATEGY=(history completion)
+ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
+ZSH_AUTOSUGGEST_USE_ASYNC=true
+ZSH_AUTOSUGGEST_MANUAL_REBIND=true
+
+# Initialize Oh-My-Zsh
+source_if_exists "$ZSH/oh-my-zsh.sh"
+
+# ============================================================================
+# Additional Integrations
+# ============================================================================
+# FZF
+source_if_exists ~/.fzf.zsh
+
+# kubectl-zsh prompt
+if [[ -f "$HOME/.oh-my-zsh/custom/plugins/zsh-kubectl-prompt/kubectl.zsh" ]]; then
+    autoload -U colors; colors
+    source "$HOME/.oh-my-zsh/custom/plugins/zsh-kubectl-prompt/kubectl.zsh"
+fi
+
+# Alacritty
+fpath+=${ZDOTDIR:-~}/.zsh_functions
+
+# envman
+source_if_exists "$HOME/.config/envman/load.sh"
+
+# VS Code shell integration
+[[ "$TERM_PROGRAM" == "vscode" ]] && source_if_exists "$(code --locate-shell-integration-path zsh 2>/dev/null)"
+
+# P10k customization
+source_if_exists ~/.p10k.zsh
+
+# User custom configurations (add your own customizations here)
+source_if_exists "$HOME/.zshrc.local"

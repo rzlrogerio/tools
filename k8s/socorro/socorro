@@ -1,0 +1,22 @@
+#!/bin/sh
+
+VALUE=$1
+
+fn_get_input()
+{
+  if [ -z $VALUE ]
+  then
+    echo "Tem que ter um parametro"
+    echo "Exemplo run|get|describe|exec|logs"
+  else
+    fn_exec_query
+  fi
+
+}
+
+fn_exec_query()
+{
+  kubectl $VALUE -h | grep '#' -A2 | less
+}
+
+fn_get_input
