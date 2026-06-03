@@ -1,0 +1,98 @@
+#!/bin/bash
+#===============================================================================
+#
+#          FILE: change-branch.sh
+#
+#         USAGE: ./change-branch.sh
+#
+#   DESCRIPTION:
+#
+#       OPTIONS: ---
+#  REQUIREMENTS: ---
+#          BUGS: ---
+#         NOTES: ---
+#        AUTHOR: Rogerio
+#  ORGANIZATION:
+#       CREATED: 2026-04-16 13:42
+#      REVISION: 1.0
+#===============================================================================
+
+set -o nounset                              # Treat unset variables as an error
+set -o pipefail
+
+BRANCH="${1:-}"
+
+is_inside_git_repo() {
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1
+}
+
+list_branches() {
+  git for-each-ref \
+    --sort=-committerdate \
+    --format=$'\033[33m%(committerdate:relative)\033[0m\t\033[32m%(refname:short)\033[0m\t%(refname:short)' \
+    refs/heads refs/remotes \
+    | sed '/HEAD$/d' \
+    | awk -F'\t' '!seen[$3]++'
+}
+
+select_branch_with_fzf() {
+  local selected
+  selected=$(list_branches | fzf \
+    --prompt="Branch > " \
+    --height=40% \
+    --border \
+    --ansi \
+    --delimiter=$'\t' \
+    --with-nth=1,2 \
+    --nth=2 \
+    --preview='git log --oneline --decorate --color=always -n 20 {3} 2>/dev/null' \
+    | cut -f3)
+
+  if [ -z "$selected" ]; then
+    echo "Nenhuma branch selecionada. Abortando."
+    exit 1
+  fi
+
+  BRANCH="$selected"
+}
+
+switch_branch() {
+  local target="$1"
+
+  if [[ "$target" == */* ]] && git show-ref --verify --quiet "refs/remotes/$target"; then
+    local local_branch="${target#*/}"
+
+    if git show-ref --verify --quiet "refs/heads/$local_branch"; then
+      git switch "$local_branch"
+    else
+      git switch -c "$local_branch" --track "$target"
+    fi
+  else
+    git switch "$target"
+  fi
+}
+
+main() {
+  if ! command -v git >/dev/null 2>&1; then
+    echo "Erro: git não está instalado."
+    exit 1
+  fi
+
+  if ! command -v fzf >/dev/null 2>&1; then
+    echo "Erro: fzf não está instalado. Instale com: sudo apt install fzf"
+    exit 1
+  fi
+
+  if ! is_inside_git_repo; then
+    echo "Erro: você não está dentro de um repositório git."
+    exit 1
+  fi
+
+  if [ -z "$BRANCH" ]; then
+    select_branch_with_fzf
+  fi
+
+  switch_branch "$BRANCH"
+}
+
+main
