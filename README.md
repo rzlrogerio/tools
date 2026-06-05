@@ -3,6 +3,7 @@
 - [Git tools](git/README.md)
 - [Kubernetes tools](k8s/README.md)
 - [Zsh tools](zsh/README.md)
+- [PowerCLI tools](powercli/README.md)
 - [Configuração Zsh](zsh/rc/README.md)
 - [get-restart](k8s/get-restart/README.md)
 - [socorro](k8s/socorro/README.md)
@@ -15,7 +16,7 @@
 
 # Ferramentas
 
-Este repositório contém utilitários e configurações úteis para Git, Kubernetes e Zsh.
+Este repositório contém utilitários e configurações úteis para Git, Kubernetes, PowerCLI e Zsh.
 
 ## Estrutura principal
 
@@ -38,6 +39,10 @@ Este repositório contém utilitários e configurações úteis para Git, Kubern
   - [`rc/README.md`](zsh/rc/README.md) — documentação do instalador e da configuração Zsh
   - [`theme/rogerio.png`](zsh/theme/rogerio.png) — screenshot do tema Zsh
   - [`theme/rogerio.zsh-theme`](zsh/theme/rogerio.zsh-theme) — tema personalizado para Oh My Zsh
+
+- [`powercli/`](powercli/README.md)
+  - [`README.md`](powercli/README.md) — documentação de scripts PowerCLI para vSphere/ESXi
+  - Scripts PowerShell para automação de infraestrutura VMware
 
 ## Resultados
 
