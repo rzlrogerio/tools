@@ -15,7 +15,7 @@ Para este contexto, considere as seguintes premissas e regras de arquitetura:
    - Uma orientação VERTICAL ('verti.dot' usando `rankdir=TB`) para topologias de infraestrutura e níveis hierárquicos.
 3. Use o motor padrão 'dot' para layouts direcionados bem definidos.
 
-[INSERIR NOVO REQUISITO OU ETAPA DO PROJETO AQUI - Ex: "Preciso adicionar uma etapa deDLQ (Dead Letter Queue) se a validação do documento falhar"]
+[INSERIR NOVO REQUISITO OU ETAPA DO PROJETO AQUI - Ex: "Preciso adicionar uma etapa de DLQ (Dead Letter Queue) se a validação do documento falhar"]
 
 Com base no cenário acima, execute:
 - Gere o bloco de código Graphviz (.dot) atualizado respeitando o padrão de sintaxe (chaves, conexões direcionadas '->' e ponto e vírgula se necessário).
