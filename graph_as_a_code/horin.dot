@@ -1,0 +1,24 @@
+digraph G_Horizontal {
+    // Configuração do Grafo
+    rankdir=LR;
+    node [shape=box, style=filled, fontname="Arial"];
+    label = "Estrutura do Projeto: Crawler documentos públicos (Horizontal)";
+    // Definição dos Nós
+    A [label="NOME DO PROJETO\nCrawler documentos públicos" color="#313695" fontcolor=white];
+    B [label="Tecnologia" fillcolor="#fee090"];
+    C [label="Controle de Dependências" fillcolor="#fee090"];
+    D [label="Escopo" fillcolor="#fee090"];
+    B1 [label="Linguagem Python" fillcolor="#f46d43"];
+    C1 [label="Código completo\nsem uso de comandos externo" fillcolor="#fdae61"];
+    D1 [label="Acessar páginas\ncom documentos públicos" fillcolor="#a6d96a"];
+    D2 [label="Gerar relatório" fillcolor="#a6d96a"];
+    // Relações (Projeto -> Categorias)
+    A -> B;
+    A -> C;
+    A -> D;
+    // Relações (Categorias -> Detalhes)
+    B -> B1;
+    C -> C1;
+    D -> D1;
+    D -> D2;
+}

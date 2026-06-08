@@ -4,6 +4,7 @@
 - [Kubernetes tools](k8s/README.md)
 - [Zsh tools](zsh/README.md)
 - [PowerCLI tools](powercli/README.md)
+- [Graph as Code tools](graph_as_a_code/README.md)
 - [Configuração Zsh](zsh/rc/README.md)
 - [get-restart](k8s/get-restart/README.md)
 - [socorro](k8s/socorro/README.md)
@@ -43,6 +44,9 @@ Este repositório contém utilitários e configurações úteis para Git, Kubern
 - [`powercli/`](powercli/README.md)
   - [`README.md`](powercli/README.md) — documentação de scripts PowerCLI para vSphere/ESXi
   - Scripts PowerShell para automação de infraestrutura VMware
+
+- [`graph_as_a_code/`](graph_as_a_code/README.md)
+  - [`README.md`](graph_as_a_code/README.md) — documentação de scripts e configurações Graph as Code
 
 ## Resultados
 
