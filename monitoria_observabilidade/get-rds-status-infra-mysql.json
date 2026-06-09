@@ -1,0 +1,182 @@
+[
+    {
+        "Id": "m1",
+        "MetricStat": {
+            "Metric": {
+                "Namespace": "AWS/RDS",
+                "MetricName": "CPUUtilization",
+                "Dimensions": [
+                    {
+                        "Name": "DBInstanceIdentifier",
+                        "Value": "SED_INSTANCE_NAME"
+                    }
+                ]
+            },
+            "Period": SED_PERIOD,
+            "Stat": "Average"
+        },
+        "ReturnData": true
+    },
+    {
+        "Id": "m2",
+        "MetricStat": {
+            "Metric": {
+                "Namespace": "AWS/RDS",
+                "MetricName": "DatabaseConnections",
+                "Dimensions": [
+                    {
+                        "Name": "DBInstanceIdentifier",
+                        "Value": "SED_INSTANCE_NAME"
+                    }
+                ]
+            },
+            "Period": SED_PERIOD,
+            "Stat": "Average"
+        },
+        "ReturnData": true
+    },
+    {
+        "Id": "m3",
+        "MetricStat": {
+            "Metric": {
+                "Namespace": "AWS/RDS",
+                "MetricName": "FreeableMemory",
+                "Dimensions": [
+                    {
+                        "Name": "DBInstanceIdentifier",
+                        "Value": "SED_INSTANCE_NAME"
+                    }
+                ]
+            },
+            "Period": SED_PERIOD,
+            "Stat": "Average"
+        },
+        "ReturnData": true
+    },
+    {
+        "Id": "m4",
+        "MetricStat": {
+            "Metric": {
+                "Namespace": "AWS/RDS",
+                "MetricName": "BinLogDiskUsage",
+                "Dimensions": [
+                    {
+                        "Name": "DBInstanceIdentifier",
+                        "Value": "SED_INSTANCE_NAME"
+                    }
+                ]
+            },
+            "Period": SED_PERIOD,
+            "Stat": "Average"
+        },
+        "ReturnData": true
+    },
+    {
+        "Id": "m5",
+        "MetricStat": {
+            "Metric": {
+                "Namespace": "AWS/RDS",
+                "MetricName": "DiskQueueDepth",
+                "Dimensions": [
+                    {
+                        "Name": "DBInstanceIdentifier",
+                        "Value": "SED_INSTANCE_NAME"
+                    }
+                ]
+            },
+            "Period": SED_PERIOD,
+            "Stat": "Average"
+        },
+        "ReturnData": true
+    },
+    {
+        "Id": "m6",
+        "MetricStat": {
+            "Metric": {
+                "Namespace": "AWS/RDS",
+                "MetricName": "FreeStorageSpace",
+                "Dimensions": [
+                    {
+                        "Name": "DBInstanceIdentifier",
+                        "Value": "SED_INSTANCE_NAME"
+                    }
+                ]
+            },
+            "Period": SED_PERIOD,
+            "Stat": "Average"
+        },
+        "ReturnData": true
+    },
+    {
+        "Id": "m7",
+        "MetricStat": {
+            "Metric": {
+                "Namespace": "AWS/RDS",
+                "MetricName": "NetworkReceiveThroughput",
+                "Dimensions": [
+                    {
+                        "Name": "DBInstanceIdentifier",
+                        "Value": "SED_INSTANCE_NAME"
+                    }
+                ]
+            },
+            "Period": SED_PERIOD,
+            "Stat": "Average"
+        },
+        "ReturnData": true
+    },
+    {
+        "Id": "m8",
+        "MetricStat": {
+            "Metric": {
+                "Namespace": "AWS/RDS",
+                "MetricName": "NetworkTransmitThroughput",
+                "Dimensions": [
+                    {
+                        "Name": "DBInstanceIdentifier",
+                        "Value": "SED_INSTANCE_NAME"
+                    }
+                ]
+            },
+            "Period": SED_PERIOD,
+            "Stat": "Average"
+        },
+        "ReturnData": true
+    },
+    {
+        "Id": "m9",
+        "MetricStat": {
+            "Metric": {
+                "Namespace": "AWS/RDS",
+                "MetricName": "SwapUsage",
+                "Dimensions": [
+                    {
+                        "Name": "DBInstanceIdentifier",
+                        "Value": "SED_INSTANCE_NAME"
+                    }
+                ]
+            },
+            "Period": SED_PERIOD,
+            "Stat": "Average"
+        },
+        "ReturnData": true
+    },
+    {
+        "Id": "m10",
+        "MetricStat": {
+            "Metric": {
+                "Namespace": "AWS/RDS",
+                "MetricName": "ConnectionAttempts",
+                "Dimensions": [
+                    {
+                        "Name": "DBInstanceIdentifier",
+                        "Value": "SED_INSTANCE_NAME"
+                    }
+                ]
+            },
+            "Period": SED_PERIOD,
+            "Stat": "Average"
+        },
+        "ReturnData": true
+    }
+]

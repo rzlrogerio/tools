@@ -1,0 +1,19 @@
+[tool.black]
+line-length = 88
+target-version = ['py311']
+exclude = '''
+/(
+  \.venv-lint
+ | build
+ | dist
+)
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 88
+known_first_party = ""
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203"]
