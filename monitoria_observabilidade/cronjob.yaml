@@ -1,0 +1,49 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: rds-monitoring-cronjob
+  namespace: monitoring
+spec:
+  # Executa a cada 5 minutos.
+  # Formato: "minuto hora dia-do-mês mês dia-da-semana"
+  schedule: "*/5 * * * *"
+  
+  # Define o comportamento do Job
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: rds-monitor-container
+            # SUBSTITUA pelo nome da sua imagem de contêiner
+            image: seu-registro/sua-imagem-de-monitoramento:latest
+            
+            # SUBSTITUA pelo comando para executar seu script
+            command: ["python", "seu_script_de_monitoramento.py"]
+            
+            # (Opcional) Se você precisar de credenciais da AWS ou outras configurações,
+            # você pode montá-las a partir de um Secret.
+            # Este exemplo assume que você tem um Secret chamado 'aws-credentials'
+            # com as chaves 'aws_access_key_id' e 'aws_secret_access_key'.
+            env:
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: aws_access_key_id
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: aws_secret_access_key
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1" # Altere para sua região
+
+          # Política de reinicialização para os Pods criados pelo Job.
+          # 'OnFailure' reiniciará o contêiner se ele falhar.
+          # 'Never' não tentará reiniciar.
+          restartPolicy: OnFailure
+          
+  # (Opcional) Limita o número de jobs concluídos e com falha que são mantidos.
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1

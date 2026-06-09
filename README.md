@@ -5,6 +5,7 @@
 - [Zsh tools](zsh/README.md)
 - [PowerCLI tools](powercli/README.md)
 - [Graph as Code tools](graph_as_a_code/README.md)
+- [Monitoria e Observabilidade](monitoria_observabilidade/README.md)
 - [Configuração Zsh](zsh/rc/README.md)
 - [get-restart](k8s/get-restart/README.md)
 - [socorro](k8s/socorro/README.md)
@@ -47,6 +48,9 @@ Este repositório contém utilitários e configurações úteis para Git, Kubern
 
 - [`graph_as_a_code/`](graph_as_a_code/README.md)
   - [`README.md`](graph_as_a_code/README.md) — documentação de scripts e configurações Graph as Code
+
+- [`monitoria_observabilidade/`](monitoria_observabilidade/README.md)
+  - [`README.md`](monitoria_observabilidade/README.md) — documentação de scripts e configurações de monitoria e observabilidade
 
 ## Resultados
 
