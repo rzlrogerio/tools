@@ -5,6 +5,7 @@
 - [Zsh tools](zsh/README.md)
 - [PowerCLI tools](powercli/README.md)
 - [Graph as Code tools](graph_as_a_code/README.md)
+- [Cloud tools](cloud/README.md)
 - [Monitoria e Observabilidade](monitoria_observabilidade/README.md)
 - [Configuração Zsh](zsh/rc/README.md)
 - [get-restart](k8s/get-restart/README.md)
@@ -51,6 +52,11 @@ Este repositório contém utilitários e configurações úteis para Git, Kubern
 
 - [`monitoria_observabilidade/`](monitoria_observabilidade/README.md)
   - [`README.md`](monitoria_observabilidade/README.md) — documentação de scripts e configurações de monitoria e observabilidade
+
+- [`cloud/`](cloud/README.md)
+  - [`README.md`](cloud/README.md) — documentação de ferramentas de AWS e Azure
+  - [`aws/`](cloud/aws/README.md) — scripts e utilitários AWS SSO, EKS e inventário
+  - [`azure/`](cloud/azure/README.md) — scripts e utilitários Azure AKS
 
 ## Resultados
 
