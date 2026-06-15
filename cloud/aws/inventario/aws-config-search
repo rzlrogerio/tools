@@ -1,0 +1,196 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+DEFAULT_PROFILE="seuprofilepadrao"
+DEFAULT_REGION="us-east-1"
+
+usage() {
+  cat <<'EOF'
+Uso:
+  aws-config-search --region <regiao> [--profile <profile>] [--type <tipo>] [--match <texto>]
+  aws-config-search <regiao> <filtro> [profile]
+
+Exemplos:
+  aws-config-search us-east-1 s3
+  aws-config-search us-east-1 rds sre
+  aws-config-search --region us-east-1 --type AWS::S3::Bucket
+  aws-config-search --region us-east-1 --type rds --match pagamentos
+  aws-config-search --region us-east-1 --match redis
+
+Regras:
+  - Se o filtro for um alias conhecido (ex: s3, rds, ec2), ele vira um resourceType.
+  - Se o filtro nao for um tipo conhecido, ele sera usado como texto para buscar em
+    resourceName, resourceId e ARN.
+  - Voce pode combinar --type com --match.
+EOF
+}
+
+normalize_alias() {
+  local raw_value
+  raw_value="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
+
+  case "$raw_value" in
+    s3|bucket|buckets)
+      echo "AWS::S3::Bucket"
+      ;;
+    rds|db|database|databases)
+      echo "AWS::RDS::DBInstance"
+      ;;
+    redis|elasticache|cache)
+      echo "AWS::ElastiCache::CacheCluster"
+      ;;
+    ec2|instance|instances)
+      echo "AWS::EC2::Instance"
+      ;;
+    eks|cluster|clusters)
+      echo "AWS::EKS::Cluster"
+      ;;
+    lambda|function|functions)
+      echo "AWS::Lambda::Function"
+      ;;
+    sqs|queue|queues)
+      echo "AWS::SQS::Queue"
+      ;;
+    sns|topic|topics)
+      echo "AWS::SNS::Topic"
+      ;;
+    dynamodb|ddb|table|tables)
+      echo "AWS::DynamoDB::Table"
+      ;;
+    ecr|repository|repositories)
+      echo "AWS::ECR::Repository"
+      ;;
+    ecs|service)
+      echo "AWS::ECS::Service"
+      ;;
+    ecs-cluster)
+      echo "AWS::ECS::Cluster"
+      ;;
+    eventbridge|events|rule|rules)
+      echo "AWS::Events::Rule"
+      ;;
+    iam-role|role|roles)
+      echo "AWS::IAM::Role"
+      ;;
+    iam-policy|policy|policies)
+      echo "AWS::IAM::Policy"
+      ;;
+    kms|key|keys)
+      echo "AWS::KMS::Key"
+      ;;
+    secret|secretsmanager|secrets)
+      echo "AWS::SecretsManager::Secret"
+      ;;
+    *)
+      if [[ "$1" == AWS::* ]]; then
+        echo "$1"
+      else
+        echo ""
+      fi
+      ;;
+  esac
+}
+
+escape_sql_literal() {
+  echo "$1" | sed "s/'/''/g"
+}
+
+PROFILE="$DEFAULT_PROFILE"
+REGION=""
+RESOURCE_TYPE=""
+MATCH_TEXT=""
+POSITIONAL=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -p|--profile)
+      PROFILE="$2"
+      shift 2
+      ;;
+    -r|--region)
+      REGION="$2"
+      shift 2
+      ;;
+    -t|--type)
+      RESOURCE_TYPE="$2"
+      shift 2
+      ;;
+    -m|--match|--search)
+      MATCH_TEXT="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      POSITIONAL+=("$1")
+      shift
+      ;;
+  esac
+done
+
+if [[ -z "$REGION" && ${#POSITIONAL[@]} -gt 0 ]]; then
+  REGION="${POSITIONAL[0]}"
+fi
+
+if [[ -z "$REGION" ]]; then
+  REGION="$DEFAULT_REGION"
+fi
+
+if [[ -z "$RESOURCE_TYPE" && -z "$MATCH_TEXT" && ${#POSITIONAL[@]} -gt 1 ]]; then
+  resolved_type="$(normalize_alias "${POSITIONAL[1]}")"
+  if [[ -n "$resolved_type" ]]; then
+    RESOURCE_TYPE="$resolved_type"
+  else
+    MATCH_TEXT="${POSITIONAL[1]}"
+  fi
+fi
+
+if [[ ${#POSITIONAL[@]} -gt 2 && "$PROFILE" == "$DEFAULT_PROFILE" ]]; then
+  PROFILE="${POSITIONAL[2]}"
+fi
+
+if [[ -n "$RESOURCE_TYPE" ]]; then
+  resolved_type="$(normalize_alias "$RESOURCE_TYPE")"
+  if [[ -n "$resolved_type" ]]; then
+    RESOURCE_TYPE="$resolved_type"
+  fi
+fi
+
+if [[ -z "$RESOURCE_TYPE" && -z "$MATCH_TEXT" ]]; then
+  echo "Erro: informe ao menos um filtro por tipo ou texto." >&2
+  echo >&2
+  usage >&2
+  exit 1
+fi
+
+filters=()
+
+if [[ -n "$RESOURCE_TYPE" ]]; then
+  filters+=("resourceType = '$(escape_sql_literal "$RESOURCE_TYPE")'")
+fi
+
+if [[ -n "$MATCH_TEXT" ]]; then
+  escaped_match="$(escape_sql_literal "$MATCH_TEXT")"
+  filters+=("(resourceName LIKE '%$escaped_match%' OR resourceId LIKE '%$escaped_match%' OR arn LIKE '%$escaped_match%')")
+fi
+
+where_clause="$(IFS=' AND '; echo "${filters[*]}")"
+expression="SELECT accountId, awsRegion, resourceType, resourceId, resourceName, arn WHERE $where_clause"
+
+echo "Profile: $PROFILE" >&2
+echo "Region : $REGION" >&2
+if [[ -n "$RESOURCE_TYPE" ]]; then
+  echo "Type   : $RESOURCE_TYPE" >&2
+fi
+if [[ -n "$MATCH_TEXT" ]]; then
+  echo "Match  : $MATCH_TEXT" >&2
+fi
+echo >&2
+
+aws configservice select-resource-config \
+  --expression "$expression" \
+  --profile "$PROFILE" \
+  --region "$REGION"
