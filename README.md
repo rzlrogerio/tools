@@ -56,6 +56,7 @@ Este repositório contém utilitários e configurações úteis para Git, Kubern
 - [`cloud/`](cloud/README.md)
   - [`README.md`](cloud/README.md) — documentação de ferramentas de AWS e Azure
   - [`aws/`](cloud/aws/README.md) — scripts e utilitários AWS SSO, EKS e inventário
+    - [`inventario/`](cloud/aws/inventario/README.md) — utilitários de inventário AWS, contas e prompt
   - [`azure/`](cloud/azure/README.md) — scripts e utilitários Azure AKS
 
 ## Resultados
