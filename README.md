@@ -7,6 +7,7 @@
 - [Graph as Code tools](graph_as_a_code/README.md)
 - [Cloud tools](cloud/README.md)
 - [Monitoria e Observabilidade](monitoria_observabilidade/README.md)
+- [Markdown tools](markdown/README.md)
 - [Configuração Zsh](zsh/rc/README.md)
 - [get-restart](k8s/get-restart/README.md)
 - [socorro](k8s/socorro/README.md)
@@ -58,6 +59,10 @@ Este repositório contém utilitários e configurações úteis para Git, Kubern
   - [`aws/`](cloud/aws/README.md) — scripts e utilitários AWS SSO, EKS e inventário
     - [`inventario/`](cloud/aws/inventario/README.md) — utilitários de inventário AWS, contas e prompt
   - [`azure/`](cloud/azure/README.md) — scripts e utilitários Azure AKS
+
+- [`markdown/`](markdown/README.md)
+  - [`README.md`](markdown/README.md) — documentação do script de conversão de Markdown para PDF e requisitos
+  - [`md-2-pdf.sh`](markdown/md-2-pdf.sh) — script para converter arquivos Markdown (`.md`) para PDF usando Pandoc e XeLaTeX
 
 ## Resultados
 
