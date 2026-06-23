@@ -61,8 +61,9 @@ Este repositório contém utilitários e configurações úteis para Git, Kubern
   - [`azure/`](cloud/azure/README.md) — scripts e utilitários Azure AKS
 
 - [`markdown/`](markdown/README.md)
-  - [`README.md`](markdown/README.md) — documentação do script de conversão de Markdown para PDF e requisitos
+  - [`README.md`](markdown/README.md) — documentação dos utilitários de Markdown (leitor de terminal e conversor de PDF) e seus requisitos
   - [`md-2-pdf.sh`](markdown/md-2-pdf.sh) — script para converter arquivos Markdown (`.md`) para PDF usando Pandoc e XeLaTeX
+  - [`readmd`](markdown/readmd) — script para ler arquivos Markdown (`.md`) formatados diretamente no terminal usando Pandoc e Lynx
 
 ## Resultados
 

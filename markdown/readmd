@@ -1,0 +1,139 @@
+#!/bin/bash
+#===============================================================================
+#
+#          FILE: readmd
+# 
+#         USAGE: ./readmd <arquivo_markdown.md>
+# 
+#   DESCRIPTION: Lê arquivos Markdown (.md) diretamente no terminal usando Pandoc e Lynx.
+# 
+#  REQUIREMENTS: pandoc, lynx
+#         NOTES: Funciona em Linux e macOS.
+#        AUTHOR: Rogerio
+#       CREATED: 06/23/2026 19:51
+#      REVISION: 1.0
+#===============================================================================
+
+# Define exit on error, treat unset variables as errors, and catch pipeline failures
+set -euo pipefail
+
+# --- Funções de Ajuda e Detecção ---
+
+detect_os() {
+    case "$(uname -s)" in
+        Darwin)
+            echo "macos"
+            ;;
+        Linux)
+            echo "linux"
+            ;;
+        *)
+            echo "unknown"
+            ;;
+    esac
+}
+
+check_command() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+print_install_instructions() {
+    local os
+    os=$(detect_os)
+    
+    echo "========================================================================"
+    echo "ERRO: Dependências ausentes para a execução do script."
+    echo "========================================================================"
+    echo
+    echo "Por favor, instale as seguintes ferramentas:"
+    echo
+    
+    if [ "$os" = "macos" ]; then
+        if ! check_command pandoc; then
+            echo "  - pandoc:"
+            echo "    brew install pandoc"
+            echo
+        fi
+        if ! check_command lynx; then
+            echo "  - lynx:"
+            echo "    brew install lynx"
+            echo
+        fi
+    elif [ "$os" = "linux" ]; then
+        if [ -f /etc/debian_version ]; then
+            # Ubuntu, Debian, Mint, etc.
+            if ! check_command pandoc; then
+                echo "  - pandoc:"
+                echo "    sudo apt-get update && sudo apt-get install -y pandoc"
+                echo
+            fi
+            if ! check_command lynx; then
+                echo "  - lynx:"
+                echo "    sudo apt-get update && sudo apt-get install -y lynx"
+                echo
+            fi
+        elif [ -f /etc/arch-release ]; then
+            # Arch Linux
+            if ! check_command pandoc; then
+                echo "  - pandoc:"
+                echo "    sudo pacman -S --needed pandoc-cli"
+                echo
+            fi
+            if ! check_command lynx; then
+                echo "  - lynx:"
+                echo "    sudo pacman -S --needed lynx"
+                echo
+            fi
+        elif [ -f /etc/redhat-release ] || [ -f /etc/fedora-release ]; then
+            # Fedora, RHEL, CentOS
+            if ! check_command pandoc; then
+                echo "  - pandoc:"
+                echo "    sudo dnf install -y pandoc"
+                echo
+            fi
+            if ! check_command lynx; then
+                echo "  - lynx:"
+                echo "    sudo dnf install -y lynx"
+                echo
+            fi
+        else
+            # Outras distribuições Linux genéricas
+            if ! check_command pandoc; then
+                echo "  - pandoc (instale através do gerenciador de pacotes da sua distribuição)"
+            fi
+            if ! check_command lynx; then
+                echo "  - lynx (instale através do gerenciador de pacotes da sua distribuição)"
+            fi
+            echo
+        fi
+    else
+        echo "  - pandoc e lynx"
+        echo
+    fi
+}
+
+# --- Validação de Argumentos ---
+
+if [ "$#" -lt 1 ]; then
+    echo "Uso: $0 <arquivo_markdown.md>"
+    exit 1
+fi
+
+fileName="$1"
+
+if [ ! -f "$fileName" ]; then
+    echo "Erro: O arquivo '$fileName' não existe."
+    exit 1
+fi
+
+# --- Verificação de Dependências ---
+
+if ! check_command pandoc || ! check_command lynx; then
+    print_install_instructions
+    exit 1
+fi
+
+# --- Execução ---
+
+echo "Renderizando '$fileName' no terminal..."
+pandoc "$fileName" | lynx -stdin
