@@ -11,6 +11,7 @@
 - [Configuração Zsh](zsh/rc/README.md)
 - [get-restart](k8s/get-restart/README.md)
 - [socorro](k8s/socorro/README.md)
+- [PSP](psp/README.md)
 
 ## Uso
 
@@ -64,6 +65,12 @@ Este repositório contém utilitários e configurações úteis para Git, Kubern
   - [`README.md`](markdown/README.md) — documentação dos utilitários de Markdown (leitor de terminal e conversor de PDF) e seus requisitos
   - [`md-2-pdf.sh`](markdown/md-2-pdf.sh) — script para converter arquivos Markdown (`.md`) para PDF usando Pandoc e XeLaTeX
   - [`readmd`](markdown/readmd) — script para ler arquivos Markdown (`.md`) formatados diretamente no terminal usando Pandoc e Lynx
+
+- [`PSP/`](psp/README.md)
+  - [`README.md`](psp/README.md) — documentação dos utilitários para sistemas de pagamentos (validador de dias de pagamento e feriados) e seus requisitos
+  - [`validador_data.py`](psp/validador_dias_pgto/validador_data.py) — Validador de dias de pagamento com feriados em Python 
+  - [`get_4o_5o_day.sh`](psp/validador_dias_pgto/get_4o_5o_day.sh) — Validador de dias de pagamento com feriados em Bash Shell Script
+
 
 ## Resultados
 
