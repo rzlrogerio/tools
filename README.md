@@ -8,6 +8,7 @@
 - [Cloud tools](cloud/README.md)
 - [Monitoria e Observabilidade](monitoria_observabilidade/README.md)
 - [Markdown tools](markdown/README.md)
+- [WSL tools](wsl/README.md)
 - [Configuração Zsh](zsh/rc/README.md)
 - [get-restart](k8s/get-restart/README.md)
 - [socorro](k8s/socorro/README.md)
@@ -65,6 +66,14 @@ Este repositório contém utilitários e configurações úteis para Git, Kubern
   - [`README.md`](markdown/README.md) — documentação dos utilitários de Markdown (leitor de terminal e conversor de PDF) e seus requisitos
   - [`md-2-pdf.sh`](markdown/md-2-pdf.sh) — script para converter arquivos Markdown (`.md`) para PDF usando Pandoc e XeLaTeX
   - [`readmd`](markdown/readmd) — script para ler arquivos Markdown (`.md`) formatados diretamente no terminal usando Pandoc e Lynx
+
+- [`wsl/`](wsl/README.md)
+  - [`README.md`](wsl/README.md) — documentação geral dos utilitários e otimizações para WSL
+  - [`backup/`](wsl/backup/README.md) — solução de backup periódico do WSL para o OneDrive via `rsync` e `cron`
+  - [`browser/`](wsl/browser/README.md) — integração de navegadores do Windows com o WSL
+  - [`dns/`](wsl/dns/README.md) — script `fix-dns.sh` para corrigir problemas de DNS e VPN no WSL
+  - [`ssh/`](wsl/ssh/README.md) — script `sync-ssh.sh` para importar e configurar chaves SSH do Windows de forma segura
+  - [`wslconf-optimized/`](wsl/wslconf-optimized/README.md) — arquivo `wslconfig` com otimizações de performance, memória e recursos experimentais
 
 - [`PSP/`](psp/README.md)
   - [`README.md`](psp/README.md) — documentação dos utilitários para sistemas de pagamentos (validador de dias de pagamento e feriados) e seus requisitos

@@ -1,0 +1,32 @@
+[wsl2]
+# Memória máxima alocada para WSL2 (recomendado: 50% da RAM total)
+memory=6GB
+
+# Número de processadores virtuais (recomendado: até 80% dos cores disponíveis)
+processors=2
+
+# Memória swap (recomendado: 25% da memória RAM)
+swap=1GB
+
+# Local do arquivo de swap - trocar para seu user no windows
+swapfile=C:\\Users\\SEU_USER\\AppData\\Local\\Temp\\wsl-swap.vhdx
+
+# Desabilita localhost forwarding se não necessário (melhora performance)
+#localhostforwarding=true
+
+# Define timeout de inicialização do VM (em milissegundos)
+vmIdleTimeout=60000
+
+# Habilita modo de rede espelhada para melhor conectividade (Windows 11 22H2+)
+# networkingMode=mirrored
+
+# Habilita DNS via Windows para melhor resolução de nomes
+dnsTunneling=true
+
+# Habilita auto proxy
+# autoProxy=true
+
+[experimental]
+# Habilita recursos experimentais do WSL2
+autoMemoryReclaim=gradual  # Libera memória automaticamente (gradual, dropcache, disabled)
+# sparseVhd=true  # Reduz automaticamente o tamanho do disco virtual
