@@ -1,0 +1,484 @@
+name: Build and Push to ECR
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "app/**"
+      - "Dockerfile"
+      - ".github/workflows/**"
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "app/**"
+      - "Dockerfile"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  AWS_ACCOUNT_ID: 297652493317
+  ECR_REGISTRY: 297652493317.dkr.ecr.us-east-1.amazonaws.com
+  ECR_REPOSITORY: ms-image/ms-check-statuspages
+  INFRA_REPO: ${{ github.repository }}-infra
+
+jobs:
+  lint-dockerfile:
+    name: Lint Dockerfile
+    runs-on: arc-runner-medium
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Hadolint
+        run: |
+          if command -v hadolint &> /dev/null; then
+            echo "✅ Hadolint already installed: $(hadolint --version)"
+          else
+            HADOLINT_VERSION=$(curl -s https://api.github.com/repos/hadolint/hadolint/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+            wget -O hadolint "https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-Linux-x86_64"
+            chmod +x hadolint
+            sudo mv hadolint /usr/local/bin/
+            echo "✅ Hadolint installed: $(hadolint --version)"
+          fi
+
+      - name: Lint Dockerfile
+        run: |
+          echo "🔍 Linting Dockerfile..."
+          hadolint Dockerfile
+          echo "✅ Dockerfile lint completed"
+
+  build-and-push:
+    name: Build and Push Image
+    runs-on: arc-runner-medium
+    needs: lint-dockerfile
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/master') || github.event_name == 'release'
+    outputs:
+      image_tag: ${{ steps.image-tag.outputs.IMAGE_TAG }}
+      is_release: ${{ steps.image-tag.outputs.IS_RELEASE }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install required tools
+        run: |
+          # Check if jq is already installed
+          if command -v jq &> /dev/null; then
+            echo "jq is already installed: $(jq --version)"
+            echo "✅ Skipping jq installation"
+          else
+            echo "jq not found, installing..."
+            sudo apt-get update && sudo apt-get install -y jq
+            echo "✅ jq installed successfully: $(jq --version)"
+          fi
+
+      - name: Generate image tag
+        id: image-tag
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            # Use release tag as image tag (e.g., v1.0.0)
+            IMAGE_TAG="${{ github.event.release.tag_name }}"
+            echo "📦 Using release tag: ${IMAGE_TAG}"
+            echo "IS_RELEASE=true" >> $GITHUB_OUTPUT
+          else
+            # Use timestamp for push-to-master builds
+            TIMESTAMP=$(date +%Y%m%d%H%M%S)
+            IMAGE_TAG="${TIMESTAMP}"
+            echo "📦 Generated timestamp tag: ${IMAGE_TAG}"
+            echo "IS_RELEASE=false" >> $GITHUB_OUTPUT
+          fi
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+
+      - name: Setup AWS credentials
+        run: |
+          echo "Current AWS identity (runner account):"
+          aws sts get-caller-identity
+          echo ""
+
+          # Assume role to target account
+          echo "Assuming role to target account $AWS_ACCOUNT_ID..."
+          ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/GithubActionsRole"
+          SESSION_NAME="GitHubActions-MSGetLambdaChanges-$(date +%s)"
+
+          echo "Assuming role: $ROLE_ARN"
+          TEMP_CREDS=$(aws sts assume-role \
+            --role-arn "$ROLE_ARN" \
+            --role-session-name "$SESSION_NAME" \
+            --output json)
+
+          if [ $? -eq 0 ]; then
+            echo "✅ Successfully assumed role: GithubActionsRole"
+          else
+            echo "❌ Failed to assume role: GithubActionsRole"
+            exit 1
+          fi
+
+          # Extract and set credentials
+          export AWS_ACCESS_KEY_ID=$(echo "$TEMP_CREDS" | jq -r '.Credentials.AccessKeyId')
+          export AWS_SECRET_ACCESS_KEY=$(echo "$TEMP_CREDS" | jq -r '.Credentials.SecretAccessKey')
+          export AWS_SESSION_TOKEN=$(echo "$TEMP_CREDS" | jq -r '.Credentials.SessionToken')
+
+          # Save to environment for subsequent steps
+          echo "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=$AWS_SESSION_TOKEN" >> $GITHUB_ENV
+
+          echo ""
+          echo "New AWS identity (target account):"
+          aws sts get-caller-identity
+
+      - name: Check if ECR repository exists
+        id: check-repo
+        run: |
+          echo "🔍 Checking if repository exists: $ECR_REPOSITORY"
+          if aws ecr describe-repositories --repository-names $ECR_REPOSITORY --region $AWS_REGION &>/dev/null; then
+            echo "✅ Repository exists: $ECR_REPOSITORY"
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️  Repository does not exist: $ECR_REPOSITORY"
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create ECR repository if needed
+        if: steps.check-repo.outputs.exists == 'false'
+        run: |
+          echo "📦 Creating ECR repository: $ECR_REPOSITORY"
+
+          aws ecr create-repository \
+            --repository-name $ECR_REPOSITORY \
+            --region $AWS_REGION \
+            --image-tag-mutability IMMUTABLE \
+            --image-scanning-configuration scanOnPush=true
+
+          echo "✅ Repository created successfully"
+
+      - name: Set repository policy
+        if: steps.check-repo.outputs.exists == 'false'
+        run: |
+          echo "🔐 Setting repository policy..."
+          aws ecr set-repository-policy \
+            --repository-name $ECR_REPOSITORY \
+            --region $AWS_REGION \
+            --policy-text '{
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": "*",
+                  "Condition": {
+                    "StringEquals": {
+                      "aws:PrincipalOrgID": "o-bgpmcxvetq"
+                    }
+                  },
+                  "Action": [
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:BatchGetImage",
+                    "ecr:CompleteLayerUpload",
+                    "ecr:GetDownloadUrlForLayer",
+                    "ecr:InitiateLayerUpload",
+                    "ecr:ListImages",
+                    "ecr:PutImage",
+                    "ecr:UploadLayerPart"
+                  ]
+                }
+              ]
+            }'
+          echo "✅ Repository policy set"
+
+      - name: Set lifecycle policy
+        if: steps.check-repo.outputs.exists == 'false'
+        run: |
+          echo "♻️  Setting lifecycle policy..."
+          aws ecr put-lifecycle-policy \
+            --repository-name $ECR_REPOSITORY \
+            --region $AWS_REGION \
+            --lifecycle-policy-text '{
+              "rules": [
+                {
+                  "rulePriority": 1,
+                  "description": "Remove untagged images after 1 day",
+                  "selection": {
+                    "tagStatus": "untagged",
+                    "countType": "sinceImagePushed",
+                    "countUnit": "days",
+                    "countNumber": 1
+                  },
+                  "action": {
+                    "type": "expire"
+                  }
+                },
+                {
+                  "rulePriority": 2,
+                  "description": "Keep only latest 10 timestamp images",
+                  "selection": {
+                    "tagStatus": "tagged",
+                    "tagPrefixList": ["20"],
+                    "countType": "imageCountMoreThan",
+                    "countNumber": 10
+                  },
+                  "action": {
+                    "type": "expire"
+                  }
+                },
+                {
+                  "rulePriority": 3,
+                  "description": "Keep only latest 10 release images",
+                  "selection": {
+                    "tagStatus": "tagged",
+                    "tagPrefixList": ["v"],
+                    "countType": "imageCountMoreThan",
+                    "countNumber": 10
+                  },
+                  "action": {
+                    "type": "expire"
+                  }
+                }
+              ]
+            }'
+          echo "✅ Lifecycle policy set"
+
+      - name: Update lifecycle policy for existing repository
+        if: steps.check-repo.outputs.exists == 'true'
+        run: |
+          echo "♻️  Updating lifecycle policy for existing repository..."
+          aws ecr put-lifecycle-policy \
+            --repository-name $ECR_REPOSITORY \
+            --region $AWS_REGION \
+            --lifecycle-policy-text '{
+              "rules": [
+                {
+                  "rulePriority": 1,
+                  "description": "Remove untagged images after 1 day",
+                  "selection": {
+                    "tagStatus": "untagged",
+                    "countType": "sinceImagePushed",
+                    "countUnit": "days",
+                    "countNumber": 1
+                  },
+                  "action": {
+                    "type": "expire"
+                  }
+                },
+                {
+                  "rulePriority": 2,
+                  "description": "Keep only latest 10 timestamp images",
+                  "selection": {
+                    "tagStatus": "tagged",
+                    "tagPrefixList": ["20"],
+                    "countType": "imageCountMoreThan",
+                    "countNumber": 10
+                  },
+                  "action": {
+                    "type": "expire"
+                  }
+                },
+                {
+                  "rulePriority": 3,
+                  "description": "Keep only latest 10 release images",
+                  "selection": {
+                    "tagStatus": "tagged",
+                    "tagPrefixList": ["v"],
+                    "countType": "imageCountMoreThan",
+                    "countNumber": 10
+                  },
+                  "action": {
+                    "type": "expire"
+                  }
+                }
+              ]
+            }' || echo "⚠️ Warning: Could not update lifecycle policy"
+          echo "✅ Lifecycle policy update completed"
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | \
+            docker login --username AWS --password-stdin $ECR_REGISTRY
+          echo "✅ Logged in to ECR"
+
+      - name: Build Docker image
+        env:
+          IMAGE_TAG: ${{ steps.image-tag.outputs.IMAGE_TAG }}
+        run: |
+          echo "🔨 Building Docker image..."
+          docker build \
+            --tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            --provenance=false \
+            --sbom=false \
+            --label "git.commit=${{ github.sha }}" \
+            --label "git.branch=${{ github.ref_name }}" \
+            --label "build.date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            .
+          echo "✅ Image built successfully"
+
+      - name: Push Docker image
+        env:
+          IMAGE_TAG: ${{ steps.image-tag.outputs.IMAGE_TAG }}
+        run: |
+          echo "📤 Pushing image to ECR..."
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "✅ Image pushed successfully"
+          echo ""
+          echo "📦 Image available at:"
+          echo "  - $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+      - name: Cleanup untagged images
+        run: |
+          echo "🧹 Cleaning up untagged images in repository: $ECR_REPOSITORY"
+
+          # Get list of untagged image digests
+          UNTAGGED_IMAGES=$(aws ecr list-images \
+            --repository-name "$ECR_REPOSITORY" \
+            --filter "tagStatus=UNTAGGED" \
+            --query 'imageIds[*].imageDigest' \
+            --output text \
+            --region $AWS_REGION 2>/dev/null || echo "")
+
+          if [ -z "$UNTAGGED_IMAGES" ]; then
+            echo "✅ No untagged images found to clean"
+            exit 0
+          fi
+
+          echo "Found untagged images to clean:"
+          echo "$UNTAGGED_IMAGES"
+
+          # Delete untagged images
+          for digest in $UNTAGGED_IMAGES; do
+            echo "Deleting untagged image: $digest"
+            aws ecr batch-delete-image \
+              --repository-name "$ECR_REPOSITORY" \
+              --image-ids imageDigest="$digest" \
+              --region $AWS_REGION || echo "⚠️ Failed to delete $digest"
+          done
+
+          echo "✅ Cleanup completed"
+
+      - name: Summary
+        env:
+          IMAGE_TAG: ${{ steps.image-tag.outputs.IMAGE_TAG }}
+        run: |
+          echo "## 🚀 Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Image Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Repository**: \`$ECR_REGISTRY/$ECR_REPOSITORY\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Tag**: \`$IMAGE_TAG\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Available Image" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  create-infra-pr:
+    name: Create PR in Infra Repo
+    runs-on: arc-runner-medium
+    needs: build-and-push
+    if: needs.build-and-push.outputs.is_release == 'true'
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.CI_APP_INFRA_ARGO_ID }}
+          private-key: ${{ secrets.CI_APP_INFRA_ARGO_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}-infra
+
+      - name: Install GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
+
+      - name: Garantir label 'release-only' no repositório de infraestrutura
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          if ! gh label list --repo "${INFRA_REPO}" | grep -q '^release-only'; then
+            echo "Label 'release-only' não existe. Criando..."
+            gh label create "release-only" --repo "${INFRA_REPO}" --color "0E8A16" --description "PRs automáticos de release de imagem"
+          else
+            echo "Label 'release-only' já existe."
+          fi
+
+      - name: Create branch, update tag and open PR
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          IMAGE_TAG: ${{ needs.build-and-push.outputs.image_tag }}
+        run: |
+          echo "🔄 Creating PR in infra repo to update image tag to ${IMAGE_TAG}..."
+
+          BRANCH_NAME="release/${IMAGE_TAG}"
+          BASE_BRANCH="master"
+          FILE_PATH="values.prod.yaml"
+
+          # Get the SHA of the base branch
+          BASE_SHA=$(gh api "repos/${INFRA_REPO}/git/ref/heads/${BASE_BRANCH}" --jq '.object.sha')
+          echo "📌 Base branch SHA: ${BASE_SHA}"
+
+
+          # Verifica se a branch já existe antes de criar
+          if gh api "repos/${INFRA_REPO}/git/ref/heads/${BRANCH_NAME}" &>/dev/null; then
+            echo "⚠️ Atenção: a branch '${BRANCH_NAME}' já existe no repositório de infraestrutura."
+            echo "Se você está repetindo a release, verifique se deseja prosseguir ou limpe a branch manualmente."
+          else
+            gh api "repos/${INFRA_REPO}/git/refs" \
+              --method POST \
+              -f ref="refs/heads/${BRANCH_NAME}" \
+              -f sha="${BASE_SHA}"
+            echo "✅ Branch created: ${BRANCH_NAME}"
+          fi
+
+          # Get current file content and SHA
+          FILE_RESPONSE=$(gh api "repos/${INFRA_REPO}/contents/${FILE_PATH}?ref=${BRANCH_NAME}")
+          FILE_SHA=$(echo "$FILE_RESPONSE" | jq -r '.sha')
+          CURRENT_CONTENT=$(echo "$FILE_RESPONSE" | jq -r '.content' | base64 -d)
+
+          # Update appImageTag value using sed
+          UPDATED_CONTENT=$(echo "$CURRENT_CONTENT" | sed "s/tag: &appImageTag '.*'/tag: \&appImageTag '${IMAGE_TAG}'/")
+
+          # Encode content in base64
+          ENCODED_CONTENT=$(echo "$UPDATED_CONTENT" | base64 -w 0)
+
+          # Commit the updated file
+          gh api "repos/${INFRA_REPO}/contents/${FILE_PATH}" \
+            --method PUT \
+            -f message="🤖 Release ${IMAGE_TAG} - Update image tag" \
+            -f content="${ENCODED_CONTENT}" \
+            -f sha="${FILE_SHA}" \
+            -f branch="${BRANCH_NAME}"
+          echo "✅ File updated in branch ${BRANCH_NAME}"
+
+          # Create Pull Request
+          PR_URL=$(gh pr create \
+            --repo "${INFRA_REPO}" \
+            --base "${BASE_BRANCH}" \
+            --head "${BRANCH_NAME}" \
+            --title "🚀 Release ${IMAGE_TAG} - Update image tag" \
+            --body "## Automated Release PR
+
+          **Release**: \`${IMAGE_TAG}\`
+          **Image**: \`${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}\`
+          **Source Commit**: \`${{ github.sha }}\`
+          **Release URL**: ${{ github.event.release.html_url }}
+
+          ---
+
+          ### Changes
+          - Updated \`appImageTag\` in \`values.prod.yaml\` to \`${IMAGE_TAG}\`
+
+          ### Review Guidelines
+          - **Only image tag changed?** → Any team member can approve
+          - **K8s configs changed (resources, PDB, ingress, etc.)?** → Requires SRE approval (\`@generic-organization/reliability-engineering\`)
+          " \
+            --label "release-only")
+
+          echo "✅ PR created: ${PR_URL}"
+          echo ""
+          echo "## 🔄 Infra PR Created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **PR**: ${PR_URL}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: \`${BRANCH_NAME}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image Tag**: \`${IMAGE_TAG}\`" >> $GITHUB_STEP_SUMMARY
+

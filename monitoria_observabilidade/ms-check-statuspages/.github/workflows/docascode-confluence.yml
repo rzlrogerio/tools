@@ -1,0 +1,240 @@
+name: DocasCode Publish to Confluence
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "**/*.md"
+      - ".github/workflows/docascode-confluence.yml"
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: "Forcar deploy sem alteracoes"
+        required: false
+        default: false
+        type: boolean
+
+env:
+  SOURCE_DIR: .docascode/source
+  OUTPUT_DIR: output-docascode/site
+  CONFLUENCE_WORKSPACE_BASE_URL_DEFAULT: https://your-company.atlassian.net/wiki/spaces/YOUR-SPACE/overview
+  CONFLUENCE_PARENT_PAGE_PREFIX: ${{ vars.CONFLUENCE_PARENT_PAGE_PREFIX || 'DOCASCODE' }}
+  CONFLUENCE_DEPLOY_SAFETY_MODE: ${{ vars.CONFLUENCE_DEPLOY_SAFETY_MODE || 'strict-prefix' }}
+
+jobs:
+  deploy:
+    name: Publish docs tree
+    runs-on: ubuntu-latest
+
+    env:
+      CONFLUENCE_WORKSPACE_BASE_URL: ${{ vars.CONFLUENCE_WORKSPACE_BASE_URL }}
+      CONFLUENCE_SPACE: ${{ vars.CONFLUENCE_SPACE }}
+      CONFLUENCE_PARENT_PAGE: ${{ vars.CONFLUENCE_PARENT_PAGE }}
+      CONFLUENCE_TITLE_PREFIX: ${{ vars.CONFLUENCE_TITLE_PREFIX }}
+      CONFLUENCE_USER: ${{ secrets.SVC_JIRA_CLOUD_INTEGRATION_USERNAME }}
+      CONFLUENCE_PASSWORD: ${{ secrets.SVC_JIRA_CLOUD_INTEGRATION_PASSWORD }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Validate required settings
+        run: |
+          set -euo pipefail
+
+          workspace_overview_url="${CONFLUENCE_WORKSPACE_BASE_URL:-${CONFLUENCE_WORKSPACE_BASE_URL_DEFAULT}}"
+          confluence_base_url="${workspace_overview_url%%/spaces/*}"
+
+          if [ "${confluence_base_url}" = "${workspace_overview_url}" ]; then
+            echo "Error: workspace URL must follow https://<domain>/wiki/spaces/<SPACE>/overview"
+            exit 1
+          fi
+
+          if [ -z "${CONFLUENCE_SPACE:-}" ]; then
+            CONFLUENCE_SPACE=$(echo "${workspace_overview_url}" | sed -n 's#^.*/spaces/\([^/]*\)/.*$#\1#p')
+          fi
+
+          if [ -z "${CONFLUENCE_SPACE}" ]; then
+            echo "Error: could not resolve CONFLUENCE_SPACE from workspace URL"
+            exit 1
+          fi
+
+          parent_prefix="${CONFLUENCE_PARENT_PAGE_PREFIX}"
+          if [ -z "${CONFLUENCE_PARENT_PAGE:-}" ]; then
+            parent_page_title="${parent_prefix}_${CONFLUENCE_SPACE}"
+          else
+            parent_page_title="${CONFLUENCE_PARENT_PAGE}"
+          fi
+
+          if [ "${CONFLUENCE_DEPLOY_SAFETY_MODE}" = "strict-prefix" ] && ! printf '%s' "${parent_page_title}" | grep -Eq "^${parent_prefix}_[A-Za-z0-9._-]+$"; then
+            echo "Error: parent page must match ${parent_prefix}_<SPACE>"
+            exit 1
+          fi
+
+          missing=0
+          for var_name in CONFLUENCE_USER CONFLUENCE_PASSWORD; do
+            if [ -z "${!var_name:-}" ]; then
+              echo "Missing required setting: ${var_name}"
+              missing=1
+            fi
+          done
+
+          if [ "${missing}" -ne 0 ]; then
+            exit 1
+          fi
+
+          echo "CONFLUENCE_URL=${confluence_base_url}" >> "$GITHUB_ENV"
+          echo "CONFLUENCE_SPACE=${CONFLUENCE_SPACE}" >> "$GITHUB_ENV"
+          echo "CONFLUENCE_PARENT_PAGE=${parent_page_title}" >> "$GITHUB_ENV"
+
+      - name: Build repository docs tree
+        run: |
+          set -euo pipefail
+
+          rm -rf .docascode
+          mkdir -p "${SOURCE_DIR}"
+
+          while IFS= read -r -d '' file; do
+            rel_path="${file#./}"
+            dest_file="${SOURCE_DIR}/${rel_path}"
+            mkdir -p "$(dirname "${dest_file}")"
+            cp "${file}" "${dest_file}"
+          done < <(find . -type f -name "*.md" \
+            -not -path "./.git/*" \
+            -not -path "./.docascode/*" \
+            -not -path "./output-docascode/*" \
+            -print0)
+
+          while IFS= read -r -d '' file; do
+            rel_path="${file#./}"
+            dest_file="${SOURCE_DIR}/${rel_path}"
+            mkdir -p "$(dirname "${dest_file}")"
+            cp "${file}" "${dest_file}"
+          done < <(find . -type f -path "*_attachments/*" \
+            -not -path "./.git/*" \
+            -not -path "./.docascode/*" \
+            -not -path "./output-docascode/*" \
+            -print0)
+
+          while IFS= read -r -d '' dir; do
+            readme_file="${dir}/README.md"
+            if [ ! -f "${readme_file}" ]; then
+              dir_name="$(basename "${dir}")"
+              if [ "${dir}" = "${SOURCE_DIR}" ]; then
+                dir_name="repository"
+              fi
+
+              clean_title="$(printf '%s' "${dir_name}" | tr '_' ' ' | tr '-' ' ')"
+              {
+                printf '# %s\n\n' "${clean_title}"
+                printf 'Pagina gerada automaticamente para organizar a hierarquia de documentacao no Confluence.\n'
+              } > "${readme_file}"
+            fi
+          done < <(find "${SOURCE_DIR}" -type d -print0)
+
+          mkdir -p "${OUTPUT_DIR}"
+
+      - name: Build Confluence index
+        run: |
+          docker run --rm \
+            -v "$(pwd)/${SOURCE_DIR}:/docs" \
+            md2conf/md2conf:latest index -i=/docs
+
+      - name: Convert markdown to wiki
+        run: |
+          docker run --rm \
+            -v "$(pwd)/${SOURCE_DIR}:/docs" \
+            -v "$(pwd)/${OUTPUT_DIR}:/output" \
+            md2conf/md2conf:latest convert md2wiki -i=/docs -o=/output --indexer-child-layout=SAME_DIRECTORY
+
+      - name: Ensure parent page exists
+        run: |
+          set -euo pipefail
+
+          api_url="${CONFLUENCE_URL}/rest/api/content"
+
+          response=$(curl -sS \
+            --user "${CONFLUENCE_USER}:${CONFLUENCE_PASSWORD}" \
+            --get "${api_url}" \
+            --data-urlencode "spaceKey=${CONFLUENCE_SPACE}" \
+            --data-urlencode "title=${CONFLUENCE_PARENT_PAGE}" \
+            --data-urlencode "expand=version")
+
+          existing_page_id=$(printf '%s' "${response}" | jq -r '.results[0].id // empty')
+          if [ -n "${existing_page_id}" ]; then
+            echo "Parent page already exists with id ${existing_page_id}"
+            exit 0
+          fi
+
+          create_payload=$(jq -n \
+            --arg type "page" \
+            --arg title "${CONFLUENCE_PARENT_PAGE}" \
+            --arg spaceKey "${CONFLUENCE_SPACE}" \
+            --arg bodyValue "Pagina criada automaticamente pelo workflow DocasCode." \
+            '{
+              type: $type,
+              title: $title,
+              space: { key: $spaceKey },
+              body: {
+                storage: {
+                  value: $bodyValue,
+                  representation: "storage"
+                }
+              }
+            }')
+
+          create_response=$(curl -sS \
+            --user "${CONFLUENCE_USER}:${CONFLUENCE_PASSWORD}" \
+            -H "Content-Type: application/json" \
+            -X POST \
+            --data "${create_payload}" \
+            "${api_url}")
+
+          created_page_id=$(printf '%s' "${create_response}" | jq -r '.id // empty')
+          if [ -z "${created_page_id}" ]; then
+            echo "Error: could not create parent page ${CONFLUENCE_PARENT_PAGE}"
+            echo "Confluence response: ${create_response}"
+            exit 1
+          fi
+
+          echo "Created parent page ${CONFLUENCE_PARENT_PAGE} with id ${created_page_id}"
+
+      - name: Publish to Confluence
+        run: |
+          set -euo pipefail
+
+          extra_title_args=()
+          if [ -n "${CONFLUENCE_TITLE_PREFIX:-}" ]; then
+            extra_title_args+=("--title-prefix=${CONFLUENCE_TITLE_PREFIX}")
+          fi
+
+          docker run --rm \
+            -v "$(pwd)/${SOURCE_DIR}:/docs" \
+            -v "$(pwd)/${OUTPUT_DIR}:/output" \
+            md2conf/md2conf:latest conpub \
+            -i=/docs \
+            -o=/output \
+            --indexer-child-layout=SAME_DIRECTORY \
+            "${extra_title_args[@]}" \
+            --username="${CONFLUENCE_USER}" \
+            --password="${CONFLUENCE_PASSWORD}" \
+            --space-key="${CONFLUENCE_SPACE}" \
+            -pt="${CONFLUENCE_PARENT_PAGE}" \
+            -url="${CONFLUENCE_URL}" \
+            --parent-page-publishing-strategy=APPEND_TO_ANCESTOR \
+            --orphan-removal-strategy=KEEP_ORPHANS \
+            --notify-watchers=false \
+            --version-message="Updated from ${{ github.repository }}@${{ github.sha }}"
+
+      - name: Upload conversion artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: confluence-content-model-${{ github.run_number }}
+          path: |
+            ${{ env.OUTPUT_DIR }}/confluence-content-model.json
+            ${{ env.OUTPUT_DIR }}/*.wiki
+          retention-days: 14
