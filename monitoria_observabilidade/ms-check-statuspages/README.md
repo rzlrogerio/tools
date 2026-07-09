@@ -1,5 +1,4 @@
-# Health Monitor — OpenSearch
-# Teste
+# Health Monitor - Statuspage to OpenSearch
 
 Script Python unificado que monitora **AWS Health**, **Azure Health** e **Status Pages** de terceiros, enviando documentos JSON para o **OpenSearch** quando há ocorrências ativas.
 
