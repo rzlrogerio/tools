@@ -139,6 +139,28 @@ install_config() {
     # Create cache directory
     mkdir -p "$HOME/.zsh/cache"
     print_success "Diretório de cache criado: ~/.zsh/cache"
+
+    # Copy get-context.sh to user's ~/bin
+    mkdir -p "$HOME/bin"
+    if [[ -f "../bin/get-context.sh" ]]; then
+        cp "../bin/get-context.sh" "$HOME/bin/"
+        chmod +x "$HOME/bin/get-context.sh"
+        print_success "Script get-context.sh copiado para: ~/bin/"
+    else
+        print_warning "Arquivo ../bin/get-context.sh não encontrado para copiar para ~/bin"
+    fi
+
+    # Copy rogerio.zsh-theme to ~/.oh-my-zsh/themes/
+    if [[ -d "$HOME/.oh-my-zsh/themes" ]]; then
+        if [[ -f "../theme/rogerio.zsh-theme" ]]; then
+            cp "../theme/rogerio.zsh-theme" "$HOME/.oh-my-zsh/themes/"
+            print_success "Tema rogerio.zsh-theme copiado para: ~/.oh-my-zsh/themes/"
+        else
+            print_warning "Arquivo de tema ../theme/rogerio.zsh-theme não encontrado"
+        fi
+    else
+        print_warning "Diretório de temas do Oh-My-Zsh (~/.oh-my-zsh/themes) não encontrado"
+    fi
 }
 
 # Show post-installation information
@@ -229,6 +251,16 @@ verify_installation() {
             ((errors++))
         fi
     done
+
+    if [[ ! -f "$HOME/bin/get-context.sh" ]]; then
+        print_error "~/bin/get-context.sh não encontrado"
+        ((errors++))
+    fi
+
+    if [[ ! -f "$HOME/.oh-my-zsh/themes/rogerio.zsh-theme" ]]; then
+        print_error "Tema rogerio.zsh-theme não encontrado em ~/.oh-my-zsh/themes/"
+        ((errors++))
+    fi
 
     if [[ $errors -eq 0 ]]; then
         print_success "Todos os arquivos foram instalados corretamente"
