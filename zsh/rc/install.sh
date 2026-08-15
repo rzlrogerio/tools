@@ -120,6 +120,40 @@ install_plugins() {
     fi
 }
 
+# Install HSTR
+install_hstr() {
+    if ! command -v hstr &> /dev/null; then
+        print_warning "HSTR não está instalado!"
+        echo ""
+        read -p "Deseja instalar o HSTR agora? (s/n) " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[SsYy]$ ]]; then
+            print_info "Tentando instalar HSTR..."
+            if command -v brew &> /dev/null; then
+                brew install hstr
+            elif command -v apt-get &> /dev/null; then
+                sudo apt-get update && sudo apt-get install -y hstr
+            elif command -v dnf &> /dev/null; then
+                sudo dnf install -y hstr
+            elif command -v pacman &> /dev/null; then
+                sudo pacman -S --noconfirm hstr
+            else
+                print_error "Não foi possível detectar um gerenciador de pacotes compatível (brew, apt-get, dnf, pacman)."
+                print_info "Por favor, instale o HSTR manualmente: https://github.com/dvorka/hstr"
+                return 1
+            fi
+
+            if command -v hstr &> /dev/null; then
+                print_success "HSTR instalado com sucesso!"
+            else
+                print_error "Falha ao instalar o HSTR."
+            fi
+        fi
+    else
+        print_success "HSTR já está instalado"
+    fi
+}
+
 # Install configuration files
 install_config() {
     print_info "Instalando arquivos de configuração..."
@@ -202,7 +236,7 @@ show_postinstall_info() {
 check_optional_tools() {
     print_header "Verificando Ferramentas Opcionais"
 
-    local tools=("fzf" "asdf" "exa" "eza" "bat" "batcat" "fd" "rg" "htop")
+    local tools=("fzf" "asdf" "exa" "eza" "bat" "batcat" "fd" "rg" "htop" "hstr")
     local installed=()
     local missing=()
 
@@ -304,10 +338,13 @@ main() {
     print_header "Etapa 3: Instalando Plugins"
     install_plugins
 
-    print_header "Etapa 4: Instalando Configuração"
+    print_header "Etapa 4: Instalando HSTR"
+    install_hstr
+
+    print_header "Etapa 5: Instalando Configuração"
     install_config
 
-    print_header "Etapa 5: Verificando Instalação"
+    print_header "Etapa 6: Verificando Instalação"
     if ! verify_installation; then
         print_error "Instalação completada com erros. Verifique as mensagens acima."
         exit 1

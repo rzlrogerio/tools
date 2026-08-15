@@ -75,35 +75,6 @@ update_az_cache() {
     echo "Cache do Azure CLI atualizado!"
 }
 
-# ============================================================================
-# FZF History Search Configuration
-# ============================================================================
-# Enhanced history search with FZF
-fzf-history-widget() {
-    local selected num
-    setopt localoptions noglobsubst noposixbuiltins pipefail no_aliases 2> /dev/null
-
-    # Use fc with chronological order, most recent at bottom
-    selected=( $(fc -l 1 | awk '{ cmd=$0; sub(/^[ \t]*[0-9]+\**[ \t]+/, "", cmd); if (!seen[cmd]++) print $1 "\t" cmd }' |
-        fzf --height=40% --layout=reverse --border --ansi --header='Histórico: mais recentes embaixo' +m --query="$LBUFFER" --nth=2.. --tac) )
-    local ret=$?
-
-    if [ -n "$selected" ]; then
-        num=$selected[1]
-        if [ -n "$num" ]; then
-            zle vi-fetch-history -n $num
-        fi
-    fi
-    zle reset-prompt
-    return $ret
-}
-
-# Only create widget if FZF is available
-if command -v fzf &> /dev/null; then
-    zle -N fzf-history-widget
-    bindkey '^R' fzf-history-widget
-    bindkey '^X^R' history-incremental-search-backward
-fi
 
 # ============================================================================
 # Keybindings

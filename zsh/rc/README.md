@@ -98,8 +98,7 @@ Detecta instalação via Homebrew, Git ou package manager.
 
 ### 03-common.zsh - Configurações Comuns
 - Histórico: 2M comandos, sem duplicatas
-- Git: otimizado para repos grandes
-- FZF: busca visual no histórico (Ctrl+R)
+- HSTR / FZF: busca visual e interativa no histórico com Ctrl+R (HSTR tem prioridade se instalado)
 - Azure CLI: cache otimizado
 
 ### 04-aliases.zsh - Aliases Inteligentes
@@ -138,7 +137,8 @@ Ou edite módulos em `~/.config/zsh/`
 - Oh-My-Zsh (instalado pelo script)
 
 ### Recomendado
-- [fzf](https://github.com/junegunn/fzf) - busca fuzzy
+- [hstr](https://github.com/dvorka/hstr) - visualizador inteligente de histórico (Ctrl+R)
+- [fzf](https://github.com/junegunn/fzf) - busca fuzzy (fallback para histórico)
 - [asdf v0.18.0](https://asdf-vm.com/) - version manager
 - [eza](https://github.com/eza-community/eza) - melhor `ls`
 - [bat](https://github.com/sharkdp/bat) - melhor `cat`
@@ -150,13 +150,13 @@ Ou edite módulos em `~/.config/zsh/`
 
 ```bash
 # Ubuntu/Debian
-sudo apt install fzf bat fd-find ripgrep eza
+sudo apt install hstr fzf bat fd-find ripgrep eza
 
 # Fedora
-sudo dnf install fzf bat fd-find ripgrep eza
+sudo dnf install hstr fzf bat fd-find ripgrep eza
 
 # macOS
-brew install fzf bat eza fd ripgrep
+brew install hstr fzf bat eza fd ripgrep
 
 # asdf v0.18.0
 brew install asdf  # Homebrew
