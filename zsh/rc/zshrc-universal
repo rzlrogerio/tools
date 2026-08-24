@@ -20,10 +20,13 @@ fi
 # ============================================================================
 # Configuration modules location
 export ZSH_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
+if [[ ! -d "$ZSH_CONFIG_DIR" && -d "$HOME/.config/zsh" ]]; then
+    export ZSH_CONFIG_DIR="$HOME/.config/zsh"
+fi
 
 # Function to safely source configuration files
 source_if_exists() {
-    [[ -f "$1" ]] && source "$1"
+    [[ -r "$1" ]] && source "$1"
 }
 
 # Load configuration modules in order
