@@ -54,7 +54,8 @@ fi
 export UPDATE_ZSH_DAYS=13
 
 # History settings
-HIST_STAMPS="mm/dd/yyyy"
+# Disable date stamps in history
+unsetopt EXTENDED_HISTORY
 export HISTSIZE=2000000
 export SAVEHIST=2000000
 
@@ -81,6 +82,9 @@ ZSH_AUTOSUGGEST_MANUAL_REBIND=true
 
 # Initialize Oh-My-Zsh
 source_if_exists "$ZSH/oh-my-zsh.sh"
+
+# Ensure extended history remains disabled after Oh-My-Zsh initialization
+unsetopt EXTENDED_HISTORY
 
 # ============================================================================
 # History Search Configuration (HSTR / FZF)
@@ -138,3 +142,10 @@ source_if_exists ~/.p10k.zsh
 
 # User custom configurations (add your own customizations here)
 source_if_exists "$HOME/.zshrc.local"
+
+# ============================================================================
+# Television (tv) - Fuzzy Finder & Smart Auto-completion
+# ============================================================================
+if command -v tv &> /dev/null; then
+    eval "$(tv init zsh)"
+fi
