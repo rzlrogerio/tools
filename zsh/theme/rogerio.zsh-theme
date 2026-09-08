@@ -4,10 +4,10 @@
 # REPORT VIRTUAL ENVIRONMENT
 
 function virtualenv_info {
-    [ $VIRTUAL_ENV ] && echo '('`basename $VIRTUAL_ENV`')'
+    if [[ -n "$VIRTUAL_ENV" ]]; then
+        echo "%F{green}🐍 $(basename "$VIRTUAL_ENV")%f "
+    fi
 }
-
-VIRTUALENV_REPORT=$FG[040]\$(virtualenv_info)%f
 
 # REPORT CURRENT WORKING DIRECTORY (CWD)
 # Explanation of: %0~
@@ -113,5 +113,5 @@ function prompt_char {
 
 # NOW CONSTRUCT THE PROMPT
 PROMPT="
-╭─$VIRTUALENV_REPORT $CWD %{$DATE_TIME%} $GIT_REPORT $COMMIT_HASH %{$reset_color%} %{$SML%} \$(eks_context) \$(tf_workspace) %{$TUX%}
+╭─$CWD \$(virtualenv_info)%{$DATE_TIME%} $GIT_REPORT $COMMIT_HASH %{$reset_color%} %{$SML%} \$(eks_context) \$(tf_workspace) %{$TUX%}
 ╰─$REPORT_RETURN_CODE\$(prompt_char) "
