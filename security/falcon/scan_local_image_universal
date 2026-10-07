@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+"""Universal scan_local_image wrapper - works on Windows, macOS, and Linux.
+
+This script serves as the main entry point that works on all platforms.
+On Unix systems, this requires execute permission: chmod +x scan_local_image
+On Windows, use: python scan_local_image <args> or scan_local_image.bat
+"""
+
+import sys
+import subprocess
+from pathlib import Path
+
+def main() -> int:
+    """Execute scan_local_image.py with proper argument passing."""
+    script_dir = Path(__file__).resolve().parent
+    python_script = script_dir / "scan_local_image.py"
+
+    if not python_script.exists():
+        print(f"[ERROR] Python script not found: {python_script}", file=sys.stderr)
+        return 1
+
+    # Execute the main script with all arguments passed through
+    # Using sys.executable ensures we use the same Python interpreter
+    try:
+        result = subprocess.run(
+            [sys.executable, str(python_script)] + sys.argv[1:],
+            check=False,
+        )
+        return result.returncode
+    except FileNotFoundError as e:
+        print(f"[ERROR] Failed to execute Python script: {e}", file=sys.stderr)
+        return 1
+
+if __name__ == "__main__":
+    sys.exit(main())
