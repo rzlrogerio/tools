@@ -2,16 +2,16 @@
 #===============================================================================
 #
 #          FILE: md-2-pdf.sh
-# 
+#
 #         USAGE: ./md-2-pdf.sh <markdown_file>
-# 
+#
 #   DESCRIPTION: Converte arquivos Markdown (.md) em PDF usando Pandoc e XeLaTeX.
-# 
-#  REQUIREMENTS: pandoc, xelatex (TeX Live / MacTeX), DejaVu Sans font
+#
+#  REQUIREMENTS: pandoc, xelatex (TeX Live / MacTeX), rsvg-convert, DejaVu Sans font
 #         NOTES: Funciona em Linux e macOS.
-#        AUTHOR: 
+#        AUTHOR:
 #       CREATED: 11/14/2024 10:45
-#      REVISION: 1.1
+#      REVISION: 1.2
 #===============================================================================
 
 # Define exit on error, treat unset variables as errors, and catch pipeline failures
@@ -40,14 +40,14 @@ check_command() {
 print_install_instructions() {
     local os
     os=$(detect_os)
-    
+
     echo "========================================================================"
     echo "ERRO: Dependências ausentes para a execução do script."
     echo "========================================================================"
     echo
     echo "Por favor, instale as seguintes ferramentas:"
     echo
-    
+
     if [ "$os" = "macos" ]; then
         if ! check_command pandoc; then
             echo "  - pandoc:"
@@ -58,6 +58,11 @@ print_install_instructions() {
             echo "  - xelatex (MacTeX/BasicTeX):"
             echo "    brew install --cask mactex-no-gui"
             echo "    (Após instalar, pode ser necessário reiniciar o terminal para atualizar o PATH)"
+            echo
+        fi
+        if ! check_command rsvg-convert; then
+            echo "  - rsvg-convert (suporte a imagens SVG):"
+            echo "    brew install librsvg"
             echo
         fi
     elif [ "$os" = "linux" ]; then
@@ -73,6 +78,11 @@ print_install_instructions() {
                 echo "    sudo apt-get update && sudo apt-get install -y texlive-xetex texlive-fonts-recommended"
                 echo
             fi
+            if ! check_command rsvg-convert; then
+                echo "  - rsvg-convert (librsvg2-bin):"
+                echo "    sudo apt-get update && sudo apt-get install -y librsvg2-bin"
+                echo
+            fi
         elif [ -f /etc/arch-release ]; then
             # Arch Linux
             if ! check_command pandoc; then
@@ -83,6 +93,11 @@ print_install_instructions() {
             if ! check_command xelatex; then
                 echo "  - xelatex:"
                 echo "    sudo pacman -S --needed texlive-bin texlive-fontsrecommended"
+                echo
+            fi
+            if ! check_command rsvg-convert; then
+                echo "  - rsvg-convert (librsvg):"
+                echo "    sudo pacman -S --needed librsvg"
                 echo
             fi
         elif [ -f /etc/redhat-release ] || [ -f /etc/fedora-release ]; then
@@ -97,6 +112,11 @@ print_install_instructions() {
                 echo "    sudo dnf install -y texlive-xetex texlive-collection-fontsrecommended"
                 echo
             fi
+            if ! check_command rsvg-convert; then
+                echo "  - rsvg-convert (librsvg2-tools):"
+                echo "    sudo dnf install -y librsvg2-tools"
+                echo
+            fi
         else
             # Outras distribuições Linux genéricas
             if ! check_command pandoc; then
@@ -105,10 +125,13 @@ print_install_instructions() {
             if ! check_command xelatex; then
                 echo "  - xelatex/texlive (instale através do gerenciador de pacotes da sua distribuição)"
             fi
+            if ! check_command rsvg-convert; then
+                echo "  - librsvg / rsvg-convert (instale através do gerenciador de pacotes da sua distribuição)"
+            fi
             echo
         fi
     else
-        echo "  - pandoc e xelatex (TeX Live)"
+        echo "  - pandoc, xelatex (TeX Live) e librsvg (rsvg-convert)"
         echo
     fi
 }
@@ -120,7 +143,6 @@ check_font() {
             return 0
         fi
     elif [ "$(detect_os)" = "macos" ]; then
-        # No macOS, se fc-list não estiver instalado, podemos verificar nos diretórios padrão de fontes
         local font_no_spaces="${font_name// /}"
         if [ -d "$HOME/Library/Fonts" ] && find "$HOME/Library/Fonts" -iname "*${font_no_spaces}*" -maxdepth 2 2>/dev/null | grep -q .; then
             return 0
@@ -151,7 +173,7 @@ fi
 
 # --- Verificação de Dependências ---
 
-if ! check_command pandoc || ! check_command xelatex; then
+if ! check_command pandoc || ! check_command xelatex || ! check_command rsvg-convert; then
     print_install_instructions
     exit 1
 fi
@@ -179,11 +201,10 @@ fi
 
 # --- Execução ---
 
-# Remove a extensão do arquivo original de forma segura e adiciona .pdf
 outPDF="${fileName%.*}.pdf"
 
 echo "Convertendo '$fileName' para '$outPDF'..."
-if pandoc "$fileName" -s -o "$outPDF" --pdf-engine=xelatex -V mainfont="$FONT_FAMILY"; then
+if pandoc "$fileName" -s -o "$outPDF" --pdf-engine=xelatex --pdf-engine-opt=-shell-escape -V mainfont="$FONT_FAMILY"; then
     echo "Sucesso! Arquivo '$outPDF' gerado com êxito."
 else
     echo "Erro: Falha na geração do PDF através do Pandoc."
