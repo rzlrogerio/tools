@@ -107,6 +107,7 @@ highlight BadWhitespace ctermbg=red guibg=darkred
 au BufRead,BufNewFile *.py,*.pyw,*.c,*.h match BadWhitespace /\s\+$/
 
 let g:ycm_autoclose_preview_window_after_completion=1
+let g:ycm_server_python_interpreter = '/usr/bin/python3'
 map <leader>g :YcmCompleter GoToDefinitionElseDeclaration<CR>
 
 let python_highlight_all=1

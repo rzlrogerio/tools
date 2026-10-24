@@ -24,7 +24,10 @@ O script:
 4. Instala a sintaxe YAML personalizada em `~/.vim/yaml.vim`.
 5. Reaproveita o dicionário português do Vim existente. Se não existir,
    instala `hunspell-pt-br` e gera `~/.vim/spell/pt.utf-8.spl`.
-6. Instala o Vundle e os plugins declarados no `.vimrc`.
+6. Instala os requisitos de compilação do YouCompleteMe, instala o Vundle e os
+   plugins declarados no `.vimrc`, e compila o servidor com `/usr/bin/python3`.
+   O setup exige CPython 3.12 ou superior e recompila o módulo nativo para
+   evitar incompatibilidade de versão do Python ou caminhos antigos do Anaconda.
 7. Informa quais ferramentas opcionais de lint e desenvolvimento não foram
    encontradas.
 
@@ -32,8 +35,8 @@ O setup precisa de acesso à rede para baixar os plugins. Ele não instala
 automaticamente todas as ferramentas de linguagem: `flake8`, `yamllint`,
 `shellcheck`, `go`, `gopls`, `kubectl`, `terraform`, `terragrunt` e o linter
 personalizado `~/bin/camelcase_linter.sh` são opcionais e dependem das
-linguagens que você usa. O plugin YouCompleteMe também pode precisar de
-compilação ou de configuração adicional depois da instalação.
+linguagens que você usa. O YouCompleteMe pode precisar de configuração adicional
+para habilitar completers específicos de linguagem.
 Se a instalação de plugins falhar, o setup mostra o log salvo em
 `~/.vim/vundle-install.log` e o log detalhado do Vim em
 `~/.vim/vundle-install.verbose.log`.
@@ -45,7 +48,8 @@ Se a instalação de plugins falhar, o setup mostra o log salvo em
 ```
 
 Esse modo não altera arquivos nem instala pacotes. Verifica o Vim com suporte
-ortográfico, o `.vimrc`, o Vundle e o dicionário português.
+ortográfico, o `.vimrc`, o Vundle, o dicionário português e, quando instalado,
+a compilação do YouCompleteMe com o Python configurado.
 
 No Vim, `:set spell?` mostra se a correção está ativa. `]s` e `[s` navegam
 entre palavras sinalizadas; `z=` apresenta sugestões e `zg` adiciona a palavra

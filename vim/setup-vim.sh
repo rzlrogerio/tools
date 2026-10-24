@@ -6,6 +6,8 @@ CONFIG_SOURCE="$SCRIPT_DIR/.vimrc"
 YAML_SYNTAX_SOURCE="$SCRIPT_DIR/yaml.vim"
 VIM_DIR="${HOME}/.vim"
 SPELL_DIR="$VIM_DIR/spell"
+YCM_PYTHON="/usr/bin/python3"
+YCM_DIR="$VIM_DIR/bundle/YouCompleteMe"
 
 usage() {
   cat <<'EOF'
@@ -86,6 +88,30 @@ spell_dictionary_exists() {
   [[ -s "$SPELL_DIR/pt.utf-8.spl" ]]
 }
 
+ycm_python_supported() {
+  [[ -x "$YCM_PYTHON" ]] &&
+    "$YCM_PYTHON" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)'
+}
+
+check_ycm_build() {
+  local ycmd_dir="$YCM_DIR/third_party/ycmd"
+  local build_python
+
+  [[ -f "$YCM_DIR/install.py" ]] || return 0
+  ycm_python_supported || die "YouCompleteMe requer CPython 3.12 ou superior em $YCM_PYTHON."
+
+  [[ -r "$ycmd_dir/PYTHON_USED_DURING_BUILDING" ]] ||
+    die "YouCompleteMe ainda não foi compilado; execute setup-vim.sh sem --check."
+  build_python="$(<"$ycmd_dir/PYTHON_USED_DURING_BUILDING")"
+  [[ -x "$build_python" ]] &&
+    [[ "$(readlink -f "$build_python")" == "$(readlink -f "$YCM_PYTHON")" ]] ||
+    die "YouCompleteMe foi compilado com outro Python; execute setup-vim.sh sem --check."
+
+  "$YCM_PYTHON" -c \
+    'import sys; sys.path.insert(0, sys.argv[1]); import ycm_core' "$ycmd_dir" ||
+    die "o módulo nativo do YouCompleteMe não pode ser carregado; execute setup-vim.sh sem --check."
+}
+
 report_optional_tools() {
   local tool
   local missing=()
@@ -113,6 +139,7 @@ if [[ "$MODE" == --check ]]; then
   [[ -f "$HOME/.vimrc" ]] || die "não foi encontrado ~/.vimrc; execute o script sem --check."
   [[ -d "$VIM_DIR/bundle/Vundle.vim" ]] || die "Vundle não está instalado."
   spell_dictionary_exists || die "dicionário pt-BR do Vim não encontrado em $SPELL_DIR."
+  check_ycm_build
   printf 'Vim %s com +spell, configuração, Vundle e dicionário pt-BR encontrados.\n' \
     "$(vim --version | sed -n '1s/^VIM - Vi IMproved //p')"
   report_optional_tools
@@ -124,6 +151,11 @@ if ! vim_has_spell; then
 fi
 command -v git >/dev/null 2>&1 || install_packages git
 vim_has_spell || die "o Vim instalado ainda não apresenta suporte +spell."
+ycm_python_supported || die "YouCompleteMe requer CPython 3.12 ou superior em $YCM_PYTHON."
+install_packages build-essential cmake python3-dev
+"$YCM_PYTHON" -c \
+  'import pathlib, sysconfig; raise SystemExit(0 if (pathlib.Path(sysconfig.get_path("include")) / "Python.h").is_file() else 1)' ||
+  die "os headers de desenvolvimento do Python não foram encontrados; instale python3-dev."
 
 if ! spell_dictionary_exists; then
   install_packages hunspell-pt-br
@@ -179,6 +211,12 @@ if ! vim -V1"$install_verbose_log" -Nu "$HOME/.vimrc" -n -es "$HOME/.vimrc" \
   exit 1
 fi
 rm -f "$install_verbose_log"
+
+if [[ -f "$YCM_DIR/install.py" ]]; then
+  printf 'Compilando YouCompleteMe com %s...\n' "$YCM_PYTHON"
+  "$YCM_PYTHON" "$YCM_DIR/install.py" --verbose
+  check_ycm_build
+fi
 
 printf 'Configuração concluída.\n'
 report_optional_tools
