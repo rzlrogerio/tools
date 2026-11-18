@@ -1,0 +1,31 @@
+{{- if and .Values.crossplane.enabled .Values.crossplane.dynamodb.enabled }}
+apiVersion: dynamodb.aws.upbound.io/v1beta2
+kind: Table
+metadata:
+  name: {{ .Values.crossplane.dynamodb.tableName | default (printf "%s-table" (include "my-app.fullname" .)) }}
+  labels:
+    {{- include "my-app.labels" . | nindent 4 }}
+    managed-by: crossplane
+spec:
+  deletionPolicy: {{ .Values.crossplane.deletionPolicy | default "Delete" }}
+  forProvider:
+    region: {{ .Values.crossplane.dynamodb.region | default "us-east-1" }}
+    billingMode: {{ .Values.crossplane.dynamodb.billingMode | default "PAY_PER_REQUEST" }}
+    hashKey: {{ .Values.crossplane.dynamodb.hashKey | default "id" }}
+    {{- if .Values.crossplane.dynamodb.rangeKey }}
+    rangeKey: {{ .Values.crossplane.dynamodb.rangeKey }}
+    {{- end }}
+    attribute:
+      {{- toYaml .Values.crossplane.dynamodb.attributes | nindent 6 }}
+    {{- with .Values.crossplane.dynamodb.tags }}
+    tags:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  providerConfigRef:
+    name: {{ .Values.crossplane.providerConfigRef | default "default" }}
+  {{- if .Values.crossplane.dynamodb.connectionSecret.enabled }}
+  writeConnectionSecretToRef:
+    namespace: {{ .Release.Namespace }}
+    name: {{ .Values.crossplane.dynamodb.connectionSecret.name | default (printf "%s-dynamodb-secret" (include "my-app.fullname" .)) }}
+  {{- end }}
+{{- end }}

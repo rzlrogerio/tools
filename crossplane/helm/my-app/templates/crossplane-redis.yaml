@@ -1,0 +1,29 @@
+{{- if and .Values.crossplane.enabled .Values.crossplane.redis.enabled }}
+apiVersion: elasticache.aws.upbound.io/v1beta1
+kind: Cluster
+metadata:
+  name: {{ .Values.crossplane.redis.clusterName | default (printf "%s-redis" (include "my-app.fullname" .)) }}
+  labels:
+    {{- include "my-app.labels" . | nindent 4 }}
+    managed-by: crossplane
+spec:
+  deletionPolicy: {{ .Values.crossplane.deletionPolicy | default "Delete" }}
+  forProvider:
+    region: {{ .Values.crossplane.redis.region | default "us-east-1" }}
+    engine: {{ .Values.crossplane.redis.engine | default "redis" }}
+    engineVersion: {{ .Values.crossplane.redis.engineVersion | quote | default "7.0" }}
+    nodeType: {{ .Values.crossplane.redis.nodeType | default "cache.t3.micro" }}
+    numCacheNodes: {{ .Values.crossplane.redis.numCacheNodes | default 1 }}
+    port: {{ .Values.crossplane.redis.port | default 6379 }}
+    {{- with .Values.crossplane.redis.tags }}
+    tags:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  providerConfigRef:
+    name: {{ .Values.crossplane.providerConfigRef | default "default" }}
+  {{- if .Values.crossplane.redis.connectionSecret.enabled }}
+  writeConnectionSecretToRef:
+    namespace: {{ .Release.Namespace }}
+    name: {{ .Values.crossplane.redis.connectionSecret.name | default (printf "%s-redis-secret" (include "my-app.fullname" .)) }}
+  {{- end }}
+{{- end }}

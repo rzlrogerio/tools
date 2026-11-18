@@ -1,0 +1,113 @@
+# ==============================================================================
+# values.yaml - Configuração da Aplicação e Recursos Crossplane
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Configuração da Aplicação (Workload Kubernetes)
+# ------------------------------------------------------------------------------
+app:
+  name: nginx-hello
+  replicaCount: 2
+
+  image:
+    repository: nginx
+    tag: alpine
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 80
+
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+  htmlContent: |
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Hello World - Helm + Crossplane</title>
+      <style>
+        body { font-family: sans-serif; text-align: center; padding: 50px; background: #0f172a; color: #f8fafc; }
+        .box { background: #1e293b; border-radius: 12px; padding: 30px; display: inline-block; }
+        h1 { color: #38bdf8; }
+        p { color: #94a3b8; font-size: 1.1rem; }
+      </style>
+    </head>
+    <body>
+      <div class="box">
+        <h1>Hello World - Deploy via Helm</h1>
+        <p>Microsserviço com S3, DynamoDB e Redis provisionados declarativamente via Crossplane!</p>
+      </div>
+    </body>
+    </html>
+
+# ------------------------------------------------------------------------------
+# 2. Configurações Globais do Crossplane
+# ------------------------------------------------------------------------------
+crossplane:
+  enabled: true
+  providerConfigRef: default
+  # Política ao deletar o recurso no K8s: "Delete" remove na nuvem, "Orphan" mantém na nuvem
+  deletionPolicy: Delete
+
+  # ----------------------------------------------------------------------------
+  # Recurso 1: Bucket S3
+  # ----------------------------------------------------------------------------
+  s3:
+    enabled: true
+    bucketName: "my-app-storage-bucket"
+    region: "us-east-1"
+    tags:
+      Environment: "dev"
+      ManagedBy: "Crossplane-Helm"
+      Project: "PlatformDemo"
+
+  # ----------------------------------------------------------------------------
+  # Recurso 2: Tabela DynamoDB
+  # ----------------------------------------------------------------------------
+  dynamodb:
+    enabled: true
+    tableName: "my-app-orders-table"
+    region: "us-east-1"
+    billingMode: "PAY_PER_REQUEST" # ou PROVISIONED
+    hashKey: "orderId"
+    rangeKey: "createdAt"
+    attributes:
+      - name: "orderId"
+        type: "S"
+      - name: "createdAt"
+        type: "S"
+    connectionSecret:
+      enabled: true
+      name: "dynamodb-conn-secret"
+    tags:
+      Environment: "dev"
+      ManagedBy: "Crossplane-Helm"
+      Tier: "Database"
+
+  # ----------------------------------------------------------------------------
+  # Recurso 3: Cluster Redis (AWS ElastiCache)
+  # ----------------------------------------------------------------------------
+  redis:
+    enabled: true
+    clusterName: "my-app-redis-cache"
+    region: "us-east-1"
+    engine: "redis"
+    engineVersion: "7.0"
+    nodeType: "cache.t3.micro"
+    numCacheNodes: 1
+    port: 6379
+    connectionSecret:
+      enabled: true
+      name: "redis-conn-secret"
+    tags:
+      Environment: "dev"
+      ManagedBy: "Crossplane-Helm"
+      Tier: "Cache"
