@@ -29,6 +29,7 @@ Este repositório contém utilitários e configurações úteis para Git, Kubern
 - [`git/`](git/README.md)
   - [`change-branch`](git/change-branch) — script para selecionar e trocar de branch usando `git` + `fzf`
   - [`change-branch.png`](git/change-branch.png) — imagem ilustrativa do script
+  - [`adjust_repo_protection.sh`](git/adjust_repo_protection.sh) — configura proteção de branches e recursos de segurança em repositórios GitHub
   - [`README.md`](git/README.md) — descrição do script e instruções básicas
 
 - [`k8s/`](k8s/README.md)
