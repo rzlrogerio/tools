@@ -9,6 +9,12 @@
 - [Monitoria e Observabilidade](monitoria_observabilidade/README.md)
 - [Markdown tools](markdown/README.md)
 - [WSL tools](wsl/README.md)
+- [AWS tools](aws/inventario/README.md)
+- [Crossplane tools](crossplane/README.md)
+- [GitLab no k3s](gitlab/README.md)
+- [Segurança](security/falcon/README.md)
+- [Ferramentas úteis](uteis/README.md)
+- [Vim como IDE](vim/README.md)
 - [Configuração Zsh](zsh/rc/README.md)
 - [get-restart](k8s/get-restart/README.md)
 - [socorro](k8s/socorro/README.md)
@@ -63,6 +69,30 @@ Este repositório contém utilitários e configurações úteis para Git, Kubern
     - [`inventario/`](cloud/aws/inventario/README.md) — utilitários de inventário AWS, contas e prompt
   - [`azure/`](cloud/azure/README.md) — scripts e utilitários Azure AKS
 
+- [`aws/`](aws/inventario/README.md)
+  - [`inventario/`](aws/inventario/README.md) — scripts para coletar e consultar inventário de recursos AWS
+
+- [`crossplane/`](crossplane/README.md)
+  - [`README.md`](crossplane/README.md) — guia de instalação e uso do Crossplane em k3s
+  - [`manifests/`](crossplane/manifests/) — recursos Kubernetes e exemplos de infraestrutura AWS
+  - [`helm/my-app/`](crossplane/helm/my-app/) — chart Helm de aplicação com recursos Crossplane
+
+- [`gitlab/`](gitlab/README.md)
+  - [`README.md`](gitlab/README.md) — instruções para provisionar GitLab CE, Registry, Runner e Agent em k3s
+  - [`bootstrap-devops-k3s.sh`](gitlab/bootstrap-devops-k3s.sh) — script de instalação e retomada do ambiente DevOps
+
+- [`security/`](security/falcon/README.md)
+  - [`falcon/`](security/falcon/README.md) — scanner local de imagens com CrowdStrike Falcon
+
+- [`uteis/`](uteis/README.md)
+  - [`dicas/`](uteis/dicas/README.md) — atalhos para consultar e editar dicas de terminal
+  - [`certificados/`](uteis/certificados/README.md) — validação de certificados SSL
+
+- [`vim/`](vim/README.md)
+  - [`README.md`](vim/README.md) — configuração do Vim como ambiente de desenvolvimento
+  - [`.vimrc`](vim/.vimrc) — opções e plugins Vim
+  - [`setup-vim.sh`](vim/setup-vim.sh) — instalação e verificação da configuração
+
 - [`markdown/`](markdown/README.md)
   - [`README.md`](markdown/README.md) — documentação dos utilitários de Markdown (leitor de terminal e conversor de PDF) e seus requisitos
   - [`md-2-pdf.sh`](markdown/md-2-pdf.sh) — script para converter arquivos Markdown (`.md`) para PDF usando Pandoc e XeLaTeX
@@ -76,7 +106,7 @@ Este repositório contém utilitários e configurações úteis para Git, Kubern
   - [`ssh/`](wsl/ssh/README.md) — script `sync-ssh.sh` para importar e configurar chaves SSH do Windows de forma segura
   - [`wslconf-optimized/`](wsl/wslconf-optimized/README.md) — arquivo `wslconfig` com otimizações de performance, memória e recursos experimentais
 
-- [`PSP/`](psp/README.md)
+- [`psp/`](psp/README.md)
   - [`README.md`](psp/README.md) — documentação dos utilitários para sistemas de pagamentos (validador de dias de pagamento e feriados) e seus requisitos
   - [`validador_data.py`](psp/validador_dias_pgto/validador_data.py) — Validador de dias de pagamento com feriados em Python 
   - [`get_4o_5o_day.sh`](psp/validador_dias_pgto/get_4o_5o_day.sh) — Validador de dias de pagamento com feriados em Bash Shell Script
