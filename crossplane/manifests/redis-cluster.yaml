@@ -1,0 +1,28 @@
+---
+# Recurso Gerenciado Crossplane: AWS ElastiCache (Redis)
+apiVersion: elasticache.aws.upbound.io/v1beta1
+kind: Cluster
+metadata:
+  name: demo-redis-cluster
+  labels:
+    app: demo-app
+    managed-by: crossplane
+spec:
+  deletionPolicy: Delete
+  forProvider:
+    region: us-east-1
+    engine: redis
+    engineVersion: "7.0"
+    nodeType: cache.t3.micro
+    numCacheNodes: 1
+    port: 6379
+    tags:
+      Environment: local-lab
+      ManagedBy: Crossplane
+      Tier: Cache
+  providerConfigRef:
+    name: default
+  # Injeta endpoint, porta e credenciais em uma Secret K8s para consumo pela aplicação
+  writeConnectionSecretToRef:
+    namespace: demo-crossplane
+    name: redis-conn-secret

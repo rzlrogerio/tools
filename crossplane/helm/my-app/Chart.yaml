@@ -1,0 +1,9 @@
+apiVersion: v2
+name: my-app
+description: Um Helm Chart completo integrando Microsserviço Kubernetes com recursos de nuvem gerenciados via Crossplane (S3, DynamoDB, Redis)
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: DevOps / Platform Team
+    email: platform-team@example.com

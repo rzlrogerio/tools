@@ -1,0 +1,120 @@
+---
+# 1. Namespace da Aplicação
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: demo-crossplane
+  labels:
+    environment: local-lab
+    managed-by: gitops
+
+---
+# 2. ConfigMap com o conteúdo estático da Aplicação
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-html
+  namespace: demo-crossplane
+  labels:
+    app: nginx-hello
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Hello World - Crossplane & K8s</title>
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 60px; background: #0f172a; color: #f8fafc; }
+        .card { background: #1e293b; border-radius: 12px; padding: 40px; display: inline-block; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-width: 600px; }
+        h1 { color: #38bdf8; margin-bottom: 10px; }
+        p { color: #94a3b8; font-size: 1.1rem; line-height: 1.6; }
+        .badge { background: #0284c7; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9rem; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <span class="badge">Crossplane + Kubernetes</span>
+        <h1>Hello World</h1>
+        <p>Aplicação NGINX servida junto ao provisionamento declarativo do Bucket S3 via Crossplane!</p>
+      </div>
+    </body>
+    </html>
+
+---
+# 3. Deployment da Aplicação (Microsserviço NGINX)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-hello
+  namespace: demo-crossplane
+  labels:
+    app: nginx-hello
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-hello
+  template:
+    metadata:
+      labels:
+        app: nginx-hello
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:alpine
+        ports:
+        - containerPort: 80
+          name: http
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        volumeMounts:
+        - name: html-volume
+          mountPath: /usr/share/nginx/html/index.html
+          subPath: index.html
+      volumes:
+      - name: html-volume
+        configMap:
+          name: nginx-html
+
+---
+# 4. Service da Aplicação (Exposição interna no Cluster)
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-hello
+  namespace: demo-crossplane
+  labels:
+    app: nginx-hello
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+    protocol: TCP
+  selector:
+    app: nginx-hello
+
+---
+# 5. Recurso Gerenciado Crossplane: Bucket S3 na AWS / Emulador
+# Provisionamento atômico junto à aplicação (IaC declarativa unificada)
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  name: validando-crossplane-bucket
+  labels:
+    app: nginx-hello
+    environment: local-lab
+    managed-by: crossplane
+spec:
+  deletionPolicy: Delete
+  forProvider:
+    region: us-east-1
+  providerConfigRef:
+    name: default

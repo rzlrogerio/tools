@@ -1,0 +1,19 @@
+{{- if and .Values.crossplane.enabled .Values.crossplane.s3.enabled }}
+apiVersion: s3.aws.upbound.io/v1beta1
+kind: Bucket
+metadata:
+  name: {{ .Values.crossplane.s3.bucketName | default (printf "%s-storage" (include "my-app.fullname" .)) }}
+  labels:
+    {{- include "my-app.labels" . | nindent 4 }}
+    managed-by: crossplane
+spec:
+  deletionPolicy: {{ .Values.crossplane.deletionPolicy | default "Delete" }}
+  forProvider:
+    region: {{ .Values.crossplane.s3.region | default "us-east-1" }}
+    {{- with .Values.crossplane.s3.tags }}
+    tags:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+  providerConfigRef:
+    name: {{ .Values.crossplane.providerConfigRef | default "default" }}
+{{- end }}

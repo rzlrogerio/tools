@@ -1,0 +1,31 @@
+---
+# Recurso Gerenciado Crossplane: Tabela DynamoDB
+apiVersion: dynamodb.aws.upbound.io/v1beta2
+kind: Table
+metadata:
+  name: demo-dynamo-table
+  labels:
+    app: demo-app
+    managed-by: crossplane
+spec:
+  deletionPolicy: Delete
+  forProvider:
+    region: us-east-1
+    billingMode: PAY_PER_REQUEST
+    hashKey: id
+    rangeKey: createdAt
+    attribute:
+      - name: id
+        type: S
+      - name: createdAt
+        type: S
+    tags:
+      Environment: local-lab
+      ManagedBy: Crossplane
+      Project: DemoPlatform
+  providerConfigRef:
+    name: default
+  # Publica detalhes da tabela (ex: ARN, endpoint) em uma Secret K8s
+  writeConnectionSecretToRef:
+    namespace: demo-crossplane
+    name: dynamodb-conn-secret

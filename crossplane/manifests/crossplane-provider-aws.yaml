@@ -1,0 +1,44 @@
+---
+# 1. Secret com as Credenciais AWS (Dummy para emulador ou IAM Keys para Cloud)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aws-creds
+  namespace: crossplane-system
+type: Opaque
+stringData:
+  creds: |
+    [default]
+    aws_access_key_id = test
+    aws_secret_access_key = test
+
+---
+# 2. ProviderConfig para o Provider AWS (Upbound)
+# Configurado para desenvolvimento local (redirecionando para aws-emulator / localstack)
+# Em ambiente de produção AWS real, remova o bloco 'endpoint' e utilize IRSA (IAM Roles for Service Accounts)
+apiVersion: aws.upbound.io/v1beta1
+kind: ProviderConfig
+metadata:
+  name: default
+spec:
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: aws-creds
+      key: creds
+  endpoint:
+    hostnameImmutable: true
+    services:
+      - s3
+      - dynamodb
+      - elasticache
+    source: Custom
+    url:
+      type: Static
+      static: http://aws-emulator.default.svc.cluster.local:4566
+  s3_use_path_style: true
+  skip_credentials_validation: true
+  skip_metadata_api_check: true
+  skip_region_validation: true
+  skip_requesting_account_id: true
